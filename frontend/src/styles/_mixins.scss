@@ -1,0 +1,77 @@
+// Reusable style snippets. `@use 'mixins' as m;` then `@include m.focus-ring;`.
+//
+// Each mixin exists because the same lines were repeated across components;
+// keeping them here means a change (say, a thicker focus ring) happens once.
+
+// Breakpoints, smallest first.
+$phone: 640px;
+$tablet: 960px;
+
+// Styles for screens up to $phone wide.
+@mixin phone {
+  @media (max-width: $phone) {
+    @content;
+  }
+}
+
+// Styles for screens up to $tablet wide (the sidebar stacks below this).
+@mixin tablet-down {
+  @media (max-width: $tablet) {
+    @content;
+  }
+}
+
+// The one keyboard-focus indicator used everywhere: a soft accent ring.
+// Applied on :focus-visible only, so mouse clicks don't show it.
+@mixin focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+// Text inputs and selects: border, radius, hover and focus states.
+// $height: control height, so compact and regular inputs share one look.
+@mixin input-base($height: 38px) {
+  height: $height;
+  min-width: 0;
+  padding: 0 0.7rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &::placeholder {
+    color: var(--text-3);
+  }
+  &:hover {
+    border-color: var(--text-3);
+  }
+  &:focus-visible {
+    border-color: var(--accent);
+    @include focus-ring;
+  }
+}
+
+// A <ul>/<ol> used for layout rather than as a bulleted list.
+@mixin reset-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// Small uppercase label (table headers, section titles in the drawer).
+@mixin eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+
+// Numbers that line up in columns (prices, counts, scores).
+@mixin tabular {
+  font-variant-numeric: tabular-nums;
+}

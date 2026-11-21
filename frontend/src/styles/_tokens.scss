@@ -1,0 +1,109 @@
+// Design tokens: every colour, shadow and radius the UI uses.
+//
+// Each theme is one Sass map. `global.scss` turns a map into CSS custom
+// properties with the `theme` mixin below (`--bg: #f6f7f9; ...`), and
+// components only ever use those variables (`var(--bg)`), never raw colours.
+// That's what lets the theme switch at runtime without reloading styles.
+//
+// The dark map is written once here and emitted twice in global.scss (for
+// the OS preference and for the forced "Dark" choice), so the two can't drift
+// apart the way hand-copied blocks can.
+//
+// Contrast: every text colour meets WCAG AA (4.5:1) against the backgrounds
+// it's used on, in both themes. The Playwright accessibility suite checks
+// this in a real browser, so a token change that breaks contrast fails CI.
+
+@use 'sass:map';
+
+// Light theme (the default).
+$light: (
+  bg: #f6f7f9,
+  surface: #ffffff,
+  surface-2: #f1f3f6,
+  border: #e3e6eb,
+  border-strong: #cfd4dc,
+  text: #14171c,
+  text-2: #5b6472,
+  text-3: #636c7b,
+  accent: #4f46e5,
+  accent-hover: #4338ca,
+  on-accent: #ffffff,
+  // text drawn on an accent-coloured fill
+  accent-soft: #eef0ff,
+  accent-ring: rgb(79 70 229 / 0.28),
+  danger: #c01f2a,
+  danger-soft: #fff0f0,
+  warn: #855a00,
+  warn-soft: #fff8e1,
+  active: #166b32,
+  active-soft: #e6f6ea,
+  pending: #855a00,
+  pending-soft: #fff4d6,
+  sold: #5d6570,
+  sold-soft: #eef0f3,
+  shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05),
+  shadow-md: (
+    0 1px 3px rgb(16 24 40 / 0.06),
+    0 6px 16px -4px rgb(16 24 40 / 0.08),
+  ),
+);
+
+// Dark theme. Same keys as $light; only the values differ.
+$dark: (
+  bg: #0d0f13,
+  surface: #15181e,
+  surface-2: #1c2028,
+  border: #262b35,
+  border-strong: #353b47,
+  text: #e8ebf0,
+  text-2: #a0a8b6,
+  text-3: #8d96a5,
+  accent: #818cf8,
+  accent-hover: #a5b4fc,
+  // Dark text on the light indigo accent: white on it is only 3:1.
+  on-accent: #0d0f13,
+  accent-soft: rgb(129 140 248 / 0.14),
+  accent-ring: rgb(129 140 248 / 0.35),
+  danger: #ff7b72,
+  danger-soft: rgb(255 123 114 / 0.1),
+  warn: #e3b341,
+  warn-soft: rgb(227 179 65 / 0.1),
+  active: #4ac26b,
+  active-soft: rgb(74 194 107 / 0.13),
+  pending: #e3b341,
+  pending-soft: rgb(227 179 65 / 0.13),
+  sold: #9aa3b0,
+  sold-soft: rgb(154 163 176 / 0.13),
+  shadow-sm: none,
+  shadow-md: 0 0 0 1px rgb(255 255 255 / 0.02),
+);
+
+// Tokens that are the same in every theme.
+$shared: (
+  radius: 14px,
+  radius-sm: 9px,
+);
+
+// Brand gradient (logo, score meter). Decorative, so not theme-dependent.
+$brand-from: #6366f1;
+$brand-to: #a78bfa;
+
+// Emit a token map as CSS custom properties: (bg: #fff) -> --bg: #fff;
+@mixin theme($palette) {
+  @each $name, $value in $palette {
+    --#{$name}: #{$value};
+  }
+}
+
+// Fail the build if the two themes ever define different tokens, so a token
+// added to one theme can't silently be missing from the other.
+@each $name, $value in $light {
+  @if not map.has-key($dark, $name) {
+    @error "Token '#{$name}' is in $light but missing from $dark.";
+  }
+}
+@each $name, $value in $dark {
+  @if not map.has-key($light, $name) {
+    @error "Token '#{$name}' is in $dark but missing from $light.";
+  }
+}

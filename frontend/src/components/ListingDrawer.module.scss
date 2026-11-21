@@ -1,0 +1,165 @@
+// The detail drawer: a panel that slides in from the right over a dimmed
+// backdrop.
+
+@use 'mixins' as m;
+
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(10 12 16 / 0.45);
+  animation: fade 0.2s ease both;
+}
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 100vw);
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); // clear a phone's notch
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -20px 0 40px -20px rgb(0 0 0 / 0.35);
+  animation: slide 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 650;
+  }
+}
+
+.drawer-body {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+  padding: 1.25rem;
+  overflow-y: auto;
+
+  h3 {
+    @include m.eyebrow;
+    margin: 0.6rem 0 0;
+    font-size: 0.8rem;
+  }
+}
+
+// While loading, the placeholder bars sit a little closer together.
+.loading {
+  gap: 0.6rem;
+}
+
+// --- Headline: price + status badge, then the location --------------------------
+.drawer-price {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headline-price {
+  font-size: 1.6rem;
+}
+
+.location {
+  margin: -0.5rem 0 0; // tuck under the price
+}
+
+.description {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.9rem;
+}
+
+// --- Fact tiles: beds, baths, size… ---------------------------------------------
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin: 0;
+
+  div {
+    padding: 0.6rem 0.7rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+  }
+  dt {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-3);
+  }
+  dd {
+    margin: 0.1rem 0 0;
+    font-weight: 650;
+    @include m.tabular;
+  }
+
+  @include m.phone {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// --- Tables: score breakdown and source feeds ------------------------------------
+.table-scroll {
+  overflow-x: auto; // a long address scrolls instead of widening the drawer
+}
+
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+
+  th,
+  td {
+    padding: 0.45rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--text-2);
+    font-weight: 550;
+  }
+  thead th {
+    @include m.eyebrow;
+    letter-spacing: 0.04em;
+  }
+}
+
+.num {
+  text-align: right !important; // beats the table's default left alignment
+  @include m.tabular;
+}
+
+.map-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

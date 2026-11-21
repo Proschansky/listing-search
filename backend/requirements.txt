@@ -1,0 +1,5 @@
+# Runtime dependencies - what the service needs to run (and all the Docker
+# image installs). Lower bounds only; requirements-dev.txt adds tooling.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic-settings>=2.2   # typed config from env vars (app/config.py)
