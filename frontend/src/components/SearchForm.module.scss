@@ -1,0 +1,240 @@
+// The search form: a grid of labelled inputs, then a footer with the status
+// toggles, the live-search switch and the buttons.
+
+@use 'mixins' as m;
+
+.form {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+// As many columns as fit, each at least 165px wide.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 0.9rem;
+  align-items: start;
+}
+
+// --- One labelled field -------------------------------------------------------
+.field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+
+  > span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-2);
+  }
+
+  input,
+  select {
+    @include m.input-base;
+    width: 100%;
+  }
+}
+
+// Set on a field (or the status group) when the API rejected its value.
+.invalid {
+  input,
+  select {
+    border-color: var(--danger);
+  }
+  input:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent);
+  }
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+
+// --- "Advanced" disclosure ------------------------------------------------------
+.advanced {
+  summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    list-style: none;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-2);
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+    // A chevron that turns when open (decorative: empty alt text).
+    &::before {
+      content: '▸' / '';
+      transition: transform 0.15s;
+    }
+    &:hover {
+      color: var(--text);
+    }
+    &:focus-visible {
+      @include m.focus-ring;
+      border-radius: 4px;
+    }
+  }
+
+  &[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  .grid {
+    margin-top: 0.9rem;
+  }
+}
+
+// --- Footer -------------------------------------------------------------------
+.form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.form-footer-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+// --- Status toggles ---------------------------------------------------------------
+// Real checkboxes, visually replaced by pills. The checkbox stays in the DOM
+// (invisible but on top of the pill), so keyboard, screen readers and form
+// semantics all work as normal.
+.statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    float: left;
+    margin-right: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-2);
+  }
+}
+
+.chip-toggle {
+  position: relative;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 30px;
+    padding: 0 0.8rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    color: var(--text-2);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  &:hover span {
+    border-color: var(--text-3);
+    color: var(--text);
+  }
+
+  input:checked + span {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+
+    // Empty alt text: the tick is decorative, so it stays out of the
+    // checkbox's accessible name ("active", not "✓ active").
+    &::before {
+      content: '✓' / '';
+      font-size: 0.75em;
+    }
+  }
+
+  input:focus-visible + span {
+    @include m.focus-ring;
+  }
+}
+
+// --- "Search as you type" switch ------------------------------------------------
+// Also a real checkbox; the track and knob are drawn on the label's ::before.
+$track-w: 34px;
+$track-h: 20px;
+$knob: 7px;
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-2);
+
+  input {
+    position: absolute;
+    width: $track-w;
+    height: $track-h;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  span::before {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    width: $track-w;
+    height: $track-h;
+    margin-right: 0.55rem;
+    border-radius: 999px;
+    background-color: var(--border-strong);
+    box-shadow: inset 0 0 0 2px var(--border-strong);
+    background-image: radial-gradient(circle at 10px 10px, #fff $knob, transparent $knob + 0.5px);
+    transition: background-color 0.15s;
+  }
+
+  input:checked + span::before {
+    background-color: var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent);
+    background-image: radial-gradient(circle at 24px 10px, #fff $knob, transparent $knob + 0.5px);
+  }
+
+  input:focus-visible + span::before {
+    outline: 3px solid var(--accent-ring);
+    outline-offset: 1px;
+  }
+}

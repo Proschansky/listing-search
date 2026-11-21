@@ -1,0 +1,6 @@
+# Ruff config for Python outside backend/ (the repo scripts). Inherits the
+# backend's rules so all Python in the monorepo is held to one standard.
+extend = "backend/pyproject.toml"
+
+[lint.per-file-ignores]
+"scripts/tests/**" = ["S101"]  # tests use bare asserts by design

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Pre-push: the same gate CI runs - the dependency vulnerability gate, every
+# linter, every test with coverage thresholds, and the Playwright end-to-end
+# suite. Nothing that fails here should reach the remote.
+#
+# The vulnerability gate runs first. If a runtime dependency has a fixable
+# high/critical vulnerability it stops the push, unless you type 'override'
+# and a reason at its prompt (recorded in .git/vuln-overrides.log). The prompt
+# only appears in an interactive terminal; CI can never override.
+#
+# Skip with `git push --no-verify` only if you accept CI catching it instead.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+make --no-print-directory ci
+printf '\n\033[32mpre-push checks passed\033[0m\n'

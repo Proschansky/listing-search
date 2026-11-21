@@ -1,0 +1,83 @@
+// The "Saved searches" sidebar card.
+
+@use 'mixins' as m;
+
+.saved {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+
+  // Grid children default to min-width: auto, which lets a long name (or
+  // the form) push the card wider than the 260px sidebar. Allow shrinking.
+  > * {
+    min-width: 0;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 650;
+  }
+}
+
+// Name input + "Save current". The button keeps its natural width and the
+// input takes what's left; on a very narrow card they wrap rather than
+// overflowing the card's edge.
+.saved-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+
+  input {
+    @include m.input-base(32px);
+    flex: 1 1 7rem;
+    padding: 0 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  button {
+    flex: none;
+  }
+}
+
+.saved-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+
+.saved-list {
+  @include m.reset-list;
+  display: grid;
+  gap: 0.25rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+}
+
+// Clicking a saved search's name runs it. Long names end in an ellipsis.
+.saved-apply {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--surface-2);
+  }
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}

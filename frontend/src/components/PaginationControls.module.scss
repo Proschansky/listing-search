@@ -1,0 +1,31 @@
+// "Page 2 of 3 · showing 11–20 of 25" on the left, buttons on the right.
+
+@use 'mixins' as m;
+
+.pagination {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+
+  @include m.phone {
+    justify-content: center;
+  }
+}
+
+.summary {
+  font-size: 0.82rem;
+  color: var(--text-2);
+
+  b {
+    color: var(--text);
+    font-weight: 600;
+  }
+}
+
+.buttons {
+  display: flex;
+  gap: 0.35rem;
+}

@@ -1,0 +1,19 @@
+// Placeholder cards. The layout comes from ResultsTable.module.scss (so the
+// placeholders have the real cards' shape); this only switches off the
+// interactive bits a placeholder shouldn't have.
+
+.skeleton {
+  cursor: default;
+  animation: none;
+
+  &:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border);
+  }
+}
+
+// Slightly more space between bars than between real lines of text.
+.lines {
+  gap: 0.6rem;
+}
