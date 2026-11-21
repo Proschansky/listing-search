@@ -342,7 +342,7 @@ On macOS 12, Playwright's bundled Chromium isn't available, so locally the suite
 | Gate | Runs | What it checks |
 |---|---|---|
 | **pre-commit** hook | every `git commit` | Lint, format, type-check and tests (with coverage gates) for the half of the repo you changed |
-| **pre-push** hook | every `git push` | `make ci`: the vulnerability gate, everything above, plus the Playwright suite |
+| **pre-push** hook | every `git push` | `make ci`: the vulnerability gate, every finding above moderate has to be addressed, plus the Playwright suite |
 | **CI** (`.github/workflows/ci.yml`) | every push and PR | The same checks in parallel jobs, the e2e suite, a production build and both Docker images |
 | **PR template** (`.github/pull_request_template.md`) | every PR | TL;DR, files changed, UI/backend/coverage checklists, manual run-the-app checks, optional Mermaid diagram, QA Validation (e2e, evidence, manual checks, steps for the reviewer) |
 | **PR evidence** (`npm run pr:evidence`) | when opening or updating a PR | Screenshots and a network view of every changed e2e spec, attached to the PR description |
