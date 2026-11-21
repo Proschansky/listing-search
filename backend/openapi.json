@@ -1,0 +1,391 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Listing Search Service",
+    "description": "Search, deduplicate and rank MLS listings. All endpoints are read-only.",
+    "version": "1.1.0"
+  },
+  "paths": {
+    "/api/v1/health/live": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness probe",
+        "description": "The process is up and answering HTTP. Says nothing about data.",
+        "operationId": "live_api_v1_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Live Api V1 Health Live Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness probe",
+        "description": "Can this instance serve searches? 200 if yes, 503 if not.\n\nA load balancer stops routing traffic to an instance that answers 503\nhere, without restarting it (that's what liveness is for).",
+        "operationId": "ready_api_v1_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "503": {
+            "description": "Data failed to load; see `checks`."
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Summary health check",
+        "description": "Backwards-compatible summary. Also shows the dedupe effect (12 raw -> 8 merged).",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api V1 Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Reference data for building a search UI",
+        "description": "Lets the UI build its city picker, status and sort options from real data.",
+        "operationId": "meta_api_v1_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Meta Api V1 Meta Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/listings": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Search listings",
+        "description": "Filter, rank and paginate the deduplicated listings.",
+        "operationId": "listings_api_v1_listings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Listings Api V1 Listings Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters. `details` lists every bad field."
+          },
+          "429": {
+            "description": "Rate limited. See the `Retry-After` header."
+          },
+          "500": {
+            "description": "Unexpected error. Quote `requestId` when reporting it."
+          }
+        },
+        "parameters": [
+          {
+            "name": "minPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Minimum price, inclusive."
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "Maximum price, inclusive. Must be ≥ minPrice."
+          },
+          {
+            "name": "minBedrooms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "At least this many bedrooms."
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Exact city, ignoring case and extra spaces."
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Comma-separated whole-word terms; all must match."
+          },
+          {
+            "name": "targetBudget",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "description": "Ranks listings by how close their price is."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "active,pending"
+            },
+            "description": "Comma-separated statuses. Default: active."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "relevance",
+                "newest",
+                "price_asc",
+                "price_desc",
+                "sqft_desc"
+              ]
+            },
+            "description": "Result order. Default: relevance."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Page number, from 1."
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Results per page. Default 10."
+          },
+          {
+            "name": "asOf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Reference date for recency. Default: today."
+          }
+        ]
+      }
+    },
+    "/api/v1/listings/{listing_key}": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "One listing by key",
+        "description": "A single listing in the same shape as a search result.\n\nAccepts ``targetBudget`` and ``asOf`` so the score matches what the\nsearch that linked here showed. Any other parameter is a 400.",
+        "operationId": "listing_detail_api_v1_listings__listing_key__get",
+        "parameters": [
+          {
+            "name": "listing_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Listing Key"
+            }
+          },
+          {
+            "name": "targetBudget",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "description": "Ranks listings by how close their price is."
+          },
+          {
+            "name": "asOf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Reference date for recency. Default: today."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Listing Detail Api V1 Listings  Listing Key  Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters. `details` lists every bad field."
+          },
+          "429": {
+            "description": "Rate limited. See the `Retry-After` header."
+          },
+          "500": {
+            "description": "Unexpected error. Quote `requestId` when reporting it."
+          },
+          "404": {
+            "description": "No listing has this key."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

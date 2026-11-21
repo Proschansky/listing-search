@@ -1,0 +1,40 @@
+# Tool configuration for the backend. (The service isn't packaged, so there's
+# no [project] table; dependencies live in requirements*.txt.)
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import order, B bugbear (likely bugs),
+# UP pyupgrade (modern syntax), SIM simplifications, S bandit (security),
+# RUF ruff-specific checks.
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "S", "RUF"]
+ignore = [
+  "E501",   # long lines are handled by the formatter; comments may run long
+  "RUF001", # allow typographic characters (≥, –) in user-facing strings
+  "RUF002",
+  "RUF003",
+  "SIM103", # keep filter chains as uniform "if fails: return False" steps, ending in "return True"
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use bare asserts by design.
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["app"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+# CI and the pre-push hook fail if coverage drops below this.
+fail_under = 95
+show_missing = true
+skip_covered = true

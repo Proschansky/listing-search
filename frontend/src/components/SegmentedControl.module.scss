@@ -1,0 +1,41 @@
+// A pill-shaped group of toggle buttons (List / Map, Auto / Light / Dark).
+// The pressed one is raised like a tab.
+
+@use 'mixins' as m;
+
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+
+  button {
+    height: 28px;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 550;
+    color: var(--text-2);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text);
+    }
+    &[aria-pressed='true'] {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow:
+        var(--shadow-sm),
+        0 0 0 1px var(--border);
+    }
+    &:focus-visible {
+      @include m.focus-ring;
+    }
+  }
+}

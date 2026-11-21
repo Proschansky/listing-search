@@ -1,0 +1,23 @@
+# Run the whole stack in containers:   docker compose up --build
+# Then open http://localhost:8080   (API docs are off in production mode).
+#
+# `web` waits until the API's readiness probe passes before starting, so the
+# UI never comes up in front of an API that can't serve searches yet.
+services:
+  api:
+    build: ./backend
+    environment:
+      LISTING_ENVIRONMENT: production
+      LISTING_LOG_FORMAT: json
+      LISTING_RATE_LIMIT_PER_MINUTE: "120"
+    # Not published to the host: only reachable through the web proxy.
+    expose: ["8000"]
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports: ["8080:80"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

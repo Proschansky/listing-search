@@ -1,0 +1,40 @@
+// The "Something went wrong" screen, centred on the page.
+
+.crash {
+  display: grid;
+  place-items: center;
+  min-height: 80vh;
+  padding: 1.25rem;
+}
+
+.crash-card {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 520px;
+  padding: 2rem;
+
+  h1 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+  p {
+    margin: 0;
+    color: var(--text-2);
+  }
+}
+
+// The error message, in a monospace box that wraps long words.
+.crash-detail {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
