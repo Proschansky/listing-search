@@ -45,6 +45,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
+    // Vitest's default is 5 s per test. Tests that type with userEvent (one
+    // key at a time) and run full-page axe audits can exceed that on a busy
+    // machine (e.g. while a git hook runs everything at once), failing for
+    // reasons that have nothing to do with the code. 15 s still catches a
+    // genuine hang.
+    testTimeout: 15_000,
     css: { include: /\.module\.scss$/, modules: { classNameStrategy: 'non-scoped' } },
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
     coverage: {
