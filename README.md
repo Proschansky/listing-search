@@ -245,8 +245,6 @@ The same home often appears in several feeds. In the sample, A1/B7, A2/B8, A3/B9
 
 The UI turns off the browser's built-in form validation, so the API remains the single source of truth and its field-level messages appear next to the matching inputs.
 
-The UI turns off the browser's built-in form validation, so the API stays the single source of truth and its field-level messages appear next to the matching inputs.
-
 ## Operations
 
 These are the features that make the service operable in production. All of them are on by default and configured through environment variables.
