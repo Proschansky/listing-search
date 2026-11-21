@@ -221,7 +221,12 @@ export function ListingDrawer({ listingKey, initial, context, onClose }: Props) 
             <h3>
               Source feeds <span className={ui.count}>({listing.sources.length})</span>
             </h3>
-            <div className={styles.tableScroll}>
+            {/* The table can be wider than the drawer (long addresses, wider
+                fonts on some systems), so it scrolls sideways. A scrollable
+                area must be reachable by keyboard, so the wrapper is a
+                focusable, labelled region that arrow keys can scroll. */}
+            {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- WCAG requires scrollable regions to be keyboard-focusable */}
+            <section className={styles.tableScroll} tabIndex={0} aria-label="Source feeds table">
               <table className={styles.miniTable}>
                 <thead>
                   <tr>
@@ -246,7 +251,7 @@ export function ListingDrawer({ listingKey, initial, context, onClose }: Props) 
                   ))}
                 </tbody>
               </table>
-            </div>
+            </section>
 
             <a
               className={cx(ui.btn, ui.btnSm, styles.mapLink)}
