@@ -15,7 +15,7 @@ export interface Segment<T extends string> {
 
 /** Props for {@link SegmentedControl}. */
 interface Props<T extends string> {
-  /** Accessible name for the whole group, e.g. "Results view". */
+  /** Accessible name for the whole group, for example "Results view". */
   label: string
   options: Segment<T>[]
   value: T
@@ -28,7 +28,7 @@ interface Props<T extends string> {
  * @remarks
  * Each button carries `aria-pressed`, the standard way to expose a toggle
  * button's state. The buttons sit in a `<fieldset>` whose (visually hidden)
- * `<legend>` names the group, so screen readers announce e.g.
+ * `<legend>` names the group, so screen readers announce, for example,
  * "Results view, group: List, toggle button, pressed".
  *
  * @typeParam T - The union of option values.

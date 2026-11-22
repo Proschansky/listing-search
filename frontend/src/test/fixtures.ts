@@ -72,7 +72,7 @@ export const pagination = (overrides: Partial<Pagination> = {}): Pagination => (
 /**
  * Build a search response containing {@link listing}.
  *
- * @param overrides - Fields to replace, e.g. an empty `results` list.
+ * @param overrides - Fields to replace, such as an empty `results` list.
  * @returns A complete `SearchResponse`.
  */
 export const page = (overrides: Partial<SearchResponse> = {}): SearchResponse => ({

@@ -25,7 +25,7 @@ async function audit(page: Page, exclude: string[] = []) {
   // Audit the settled page: nothing loading, no entrance animations running.
   await settled(page)
   // Only animations that end: an infinite one (a spinner) never "finishes".
-  // Capped at 2 s: an animation whose element is replaced mid-run (e.g. a
+  // Capped at 2 s: an animation whose element is replaced mid-run (for example, a
   // card re-rendered under the opening drawer) can leave a `finished`
   // promise that never settles, and the audit must not hang on it. Every
   // real animation in the app lasts well under a second.

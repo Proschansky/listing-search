@@ -15,7 +15,7 @@
  *
  * Browser: CI (Linux) uses Playwright's bundled Chromium. Locally it uses
  * the installed Google Chrome (`channel: 'chrome'`), because Playwright's
- * Chromium download doesn't support every OS version (e.g. macOS 12). Set
+ * Chromium download doesn't support every OS version (macOS 12, for one). Set
  * `PW_CHANNEL=chromium` to force the bundled one.
  *
  * Run: `npm run test:e2e` (headless) or `npm run test:e2e -- --ui` (watch it).
@@ -53,7 +53,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // Video needs Playwright's ffmpeg download, which (like its Chromium)
-    // isn't available on every OS (e.g. macOS 12), so it's recorded in CI only.
+    // isn't available on every OS (macOS 12, for one), so it's recorded in CI only.
     // Traces and screenshots cover local debugging.
     video: isCI ? 'retain-on-failure' : 'off',
   },

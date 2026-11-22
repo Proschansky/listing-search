@@ -4,17 +4,17 @@
  * @remarks
  * Steps:
  *
- * 1. **Pick specs.** Files changed on this branch (against `--base`, default
+ * 1. Pick specs. Files changed on this branch (against `--base`, default
  *    `main`) decide which e2e specs run: every test in each changed spec
  *    file. If no spec file changed, nothing is recorded and the PR is left
  *    untouched (`--all` overrides this). See `pickSpecs`.
- * 2. **Record.** Runs Playwright with `PW_EVIDENCE_DIR` set. The `evidence`
+ * 2. Record. Runs Playwright with `PW_EVIDENCE_DIR` set. The `evidence`
  *    fixture in `e2e/fixtures.ts` then saves, per test, screenshots of the UI,
  *    every `/api` request and response (status, timing, `X-Request-ID`, body),
  *    and a DevTools-style network panel rendered from them.
- * 3. **Preview.** Writes `frontend/pr-evidence/EVIDENCE.md`, which links the
+ * 3. Preview. Writes `frontend/pr-evidence/EVIDENCE.md`, which links the
  *    local images, so you can check it before publishing.
- * 4. **Publish** (`--publish`). Pushes the images to the `pr-evidence` branch
+ * 4. Publish (`--publish`). Pushes the images to the `pr-evidence` branch
  *    under `pr-<number>/<commit>/`, then rewrites only the evidence section of
  *    the PR description with `gh pr edit`. Earlier evidence for other commits
  *    stays on the branch, so old links keep working.
@@ -144,7 +144,7 @@ function check(res, what) {
  * @param {Exec} exec
  * @param {string} root
  * @param {string} runDir
- * @param {string} dest - e.g. `pr-12/abc1234`.
+ * @param {string} dest - Folder on the assets branch, for example `pr-12/abc1234`.
  * @param {string} message - Commit message.
  */
 export function pushAssets(exec, root, runDir, dest, message) {
