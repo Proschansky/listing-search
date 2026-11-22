@@ -6,12 +6,18 @@
 services:
   api:
     build: ./backend
+    # "- KEY=value" form, so Compose keeps every value a plain string (the
+    # map form would turn a substituted '["sample"]' into a YAML list).
     environment:
-      LISTING_ENVIRONMENT: production
-      LISTING_LOG_FORMAT: json
-      # Sample data plus the SimplyRETS live feed. Set to '["sample"]' to go offline.
-      LISTING_SOURCES: '["sample","simplyrets"]'
-      LISTING_RATE_LIMIT_PER_MINUTE: "120"
+      - LISTING_ENVIRONMENT=production
+      - LISTING_LOG_FORMAT=json
+      # Sample data plus the SimplyRETS live feed, unless the host sets
+      # LISTING_SOURCES (for example LISTING_SOURCES='["sample"]' to go offline).
+      - LISTING_SOURCES=${LISTING_SOURCES:-["sample","simplyrets"]}
+      # /srv belongs to root in the image; the API runs as the "app" user, so
+      # the SimplyRETS snapshot goes in that user's home directory.
+      - LISTING_SIMPLYRETS_CACHE_PATH=/home/app/.cache/simplyrets.json
+      - LISTING_RATE_LIMIT_PER_MINUTE=120
     # Not published to the host: only reachable through the web proxy.
     expose: ["8000"]
     restart: unless-stopped

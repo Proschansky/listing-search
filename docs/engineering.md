@@ -102,11 +102,11 @@ A source is a class with a `name`, a `required` flag and a `load()` method that 
 The SimplyRETS source (`sources/simplyrets.py`) has three parts:
 
 1. `to_feed_record` maps one SimplyRETS listing to the feed format. State names become codes ("Texas" becomes "TX"). Bathrooms are SimplyRETS's total, or else full plus half plus three-quarter baths. Statuses map to the app's three: `Active` to active, `Pending` and `ActiveUnderContract` to pending, `Closed` to sold. Listings with any other status, or with a missing field, are skipped and counted.
-2. `fetch_all` downloads every page, following the `Link: rel="next"` header that SimplyRETS uses for paging.
+2. `fetch_all` downloads every page, following the `Link: rel="next"` header that SimplyRETS uses for paging. It only follows links to the same scheme, host and port as `LISTING_SIMPLYRETS_URL`, because the login goes with every request. A download that still has pages after 50 is treated as a failure rather than saved half-finished.
 3. `SimplyRetsSource.load` wraps the download with the tools in `sources/resilience.py`:
    - `retry`: up to three tries, waiting about 0.5 s then 1 s, with random jitter so many clients don't retry in step. It retries only network errors, timeouts, 429 and 5xx. A 401 (bad login) fails at once, since trying again won't help.
    - `CircuitBreaker`: after three failed downloads in a row it stops calling SimplyRETS for five minutes, then lets one trial call through.
-   - `SnapshotCache`: each good download is saved to `backend/.cache/simplyrets.json` (written to a temporary file, then renamed, so a crash can't leave half a file). When SimplyRETS can't be reached, the snapshot is served instead.
+   - `SnapshotCache`: each good download is saved. A download where no record is usable counts as a failure, so it can't overwrite a good snapshot. It's saved to `backend/.cache/simplyrets.json`, or `/home/app/.cache/` in Docker (written to a temporary file, then renamed, so a crash can't leave half a file). When SimplyRETS can't be reached, the snapshot is served instead.
 
 On startup the service loads the sample and the snapshot without calling out, so it's ready at once even if SimplyRETS is slow. A background task (`refresh_forever` in `store.py`) then downloads fresh data, and again every `LISTING_SIMPLYRETS_REFRESH_MINUTES`. Each refresh builds a new repository and swaps it in with one assignment, so a request never sees half-updated data. A refresh that comes back unusable is thrown away and the old listings stay.
 

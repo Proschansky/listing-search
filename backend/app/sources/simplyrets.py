@@ -24,6 +24,7 @@ from typing import Any
 
 import httpx
 
+from ..models import Listing
 from .base import SourceResult
 from .resilience import CircuitBreaker, RetryableError, SnapshotCache, retry
 
@@ -142,24 +143,32 @@ def to_feed_record(raw: dict[str, Any]) -> dict[str, Any] | None:
             "description": raw.get("remarks") or "",
             "photos": raw.get("photos") or [],
         }
-    except (AttributeError, TypeError):
-        # A field of an unexpected type (for example "address" as a string).
+    except (AttributeError, TypeError, ValueError):
+        # A field of an unexpected type ("address" as a string, or
+        # "bathrooms" as "two"). Skip this record, not the whole download.
         return None
+
+
+def _same_origin(a: httpx.URL, b: httpx.URL) -> bool:
+    return (a.scheme, a.host, a.port) == (b.scheme, b.host, b.port)
 
 
 def fetch_all(client: httpx.Client, url: str) -> list[dict[str, Any]]:
     """Download every listing, following the ``Link: <...>; rel="next"`` header.
 
     Raises ``RetryableError`` for failures worth retrying (network errors,
-    timeouts, 429, 5xx) and ``httpx.HTTPStatusError`` for the rest (such as
-    401 for bad credentials).
+    timeouts, 429, 5xx), ``httpx.HTTPStatusError`` for other bad statuses
+    (such as 401 for bad credentials) and ``ValueError`` for a response the
+    app can't trust: a body that isn't a list, a ``next`` link to another
+    server, or more pages than ``MAX_PAGES``.
     """
+    origin = httpx.URL(url)
     params: dict[str, Any] | None = {"limit": PAGE_SIZE, "status": list(REQUESTED_STATUSES)}
     records: list[dict[str, Any]] = []
     next_url: str | None = url
     for _ in range(MAX_PAGES):
         if next_url is None:
-            break
+            return records
         try:
             response = client.get(next_url, params=params)
         except httpx.TransportError as exc:  # connection refused, DNS, timeouts
@@ -172,9 +181,33 @@ def fetch_all(client: httpx.Client, url: str) -> list[dict[str, Any]]:
             raise ValueError("SimplyRETS returned something other than a list of listings")
         records.extend(page)
         # The next link already carries every query parameter.
-        next_url = response.links.get("next", {}).get("url")
+        link = response.links.get("next", {}).get("url")
+        next_url = None
+        if link:
+            resolved = response.url.join(link)
+            # The client sends the login with every request, so only follow
+            # links to the server we were configured to call. A link to any
+            # other host, or from https down to http, could leak it.
+            if not _same_origin(resolved, origin):
+                raise ValueError(f"SimplyRETS sent a next-page link to another server ({resolved.host})")
+            next_url = str(resolved)
         params = None
+    if next_url is not None:
+        # Treating a cut-off download as complete would replace the snapshot
+        # and drop every listing past the cap, so fail and keep the snapshot.
+        raise ValueError(f"SimplyRETS still had pages after {MAX_PAGES}; download incomplete")
     return records
+
+
+def _usable(records: list[dict[str, Any]]) -> bool:
+    """Whether any mapped record passes the same check the repository applies."""
+    for record in records:
+        try:
+            Listing.from_dict(record)
+        except ValueError:
+            continue
+        return True
+    return False
 
 
 class SimplyRetsSource:
@@ -258,6 +291,14 @@ class SimplyRetsSource:
             # travel in the Authorization header.
             log.warning("SimplyRETS download failed: %s", exc)
             return self._from_snapshot(str(exc))
+        mapped = [to_feed_record(r) for r in raw if isinstance(r, dict)]
+        if raw and not _usable([r for r in mapped if r is not None]):
+            # A download full of records the app can't use is a broken
+            # response, not "SimplyRETS has no listings". Saving it would
+            # overwrite the last good snapshot, so treat it as a failure.
+            self.breaker.record_failure()
+            log.warning("SimplyRETS returned %d record(s), none usable", len(raw))
+            return self._from_snapshot(f"SimplyRETS returned {len(raw)} record(s), none usable")
         self.breaker.record_success()
         fetched_at = self._now()
         self.cache.save(raw, fetched_at)

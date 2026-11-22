@@ -122,6 +122,10 @@ def test_skips_a_listing_with_fields_of_the_wrong_type():
     assert to_feed_record(raw(address="1200 Bayou Bend Dr")) is None
 
 
+def test_skips_a_listing_with_a_nonnumeric_bathroom_count():
+    assert to_feed_record(raw(property={"bathrooms": "two"})) is None
+
+
 def test_defaults_optional_fields():
     record = to_feed_record(raw(remarks=None, photos=None, address={"postalCode": None}))
     assert (record["description"], record["photos"], record["zip"]) == ("", [], "")
@@ -150,15 +154,49 @@ def test_fetch_all_asks_for_every_status_and_follows_next_links():
     assert str(seen[1]) == f"{URL}?offset=2&limit=500"
 
 
-def test_fetch_all_stops_after_max_pages():
+def test_fetch_all_fails_rather_than_return_a_cut_off_download():
     calls = []
 
     def handler(request):
         calls.append(1)
         return httpx.Response(200, json=[], headers={"Link": f'<{URL}?again>; rel="next"'})
 
-    fetch_all(transport(handler), URL)
+    with pytest.raises(ValueError, match="incomplete"):
+        fetch_all(transport(handler), URL)
     assert len(calls) == MAX_PAGES
+
+
+def test_fetch_all_follows_a_relative_next_link():
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        if len(seen) == 1:
+            return httpx.Response(200, json=RECORDS[:1], headers={"Link": '</properties?offset=1>; rel="next"'})
+        return httpx.Response(200, json=RECORDS[1:])
+
+    assert fetch_all(transport(handler), URL) == RECORDS
+    assert seen[1] == "https://api.example.com/properties?offset=1"
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://evil.example.net/properties?offset=1",  # another host
+        "http://api.example.com/properties?offset=1",  # https down to http
+        "https://api.example.com:8443/properties?offset=1",  # another port
+    ],
+)
+def test_fetch_all_refuses_next_links_to_another_server(link):
+    calls = []
+
+    def handler(request):
+        calls.append(str(request.url))
+        return httpx.Response(200, json=RECORDS, headers={"Link": f'<{link}>; rel="next"'})
+
+    with pytest.raises(ValueError, match="another server"):
+        fetch_all(transport(handler), URL)
+    assert len(calls) == 1  # the credentials never went to the other server
 
 
 @pytest.mark.parametrize("code", [429, 500, 503])
@@ -253,6 +291,26 @@ def test_load_falls_back_to_the_snapshot_when_the_api_is_down(tmp_path):
     assert result.state == "degraded"
     assert len(result.records) == 3 and result.fetched_at == NOW
     assert "refused" in result.error
+
+
+@pytest.mark.parametrize("body", [[{}], [raw(listPrice=-5)], [raw(property={"bathrooms": "two"})]])
+def test_a_download_with_nothing_usable_keeps_the_last_good_snapshot(tmp_path, body):
+    make_source(tmp_path, ok).load()
+    result = make_source(tmp_path, lambda r: httpx.Response(200, json=body)).load()
+    assert result.state == "degraded" and "none usable" in result.error
+    assert len(result.records) == 3
+    assert SnapshotCache(tmp_path / "cache.json").load() == (RECORDS, NOW)
+
+
+def test_an_empty_download_is_accepted(tmp_path):
+    result = make_source(tmp_path, lambda r: httpx.Response(200, json=[])).load()
+    assert (result.state, result.records) == ("ok", [])
+
+
+def test_a_bad_record_in_the_snapshot_is_skipped_not_fatal(tmp_path):
+    SnapshotCache(tmp_path / "cache.json").save([*RECORDS, raw(property={"bathrooms": "two"})], NOW)
+    result = make_source(tmp_path, down).load(allow_network=False)
+    assert (result.state, len(result.records), result.skipped) == ("degraded", 3, 1)
 
 
 def test_load_is_unavailable_with_no_snapshot(tmp_path):
