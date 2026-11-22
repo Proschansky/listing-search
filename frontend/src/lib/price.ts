@@ -71,9 +71,26 @@ export function formatPrice(raw: string): string {
  * @returns An index into {@link PRICE_STOPS}.
  */
 export function stopFor(raw: string, empty: number): number {
-  if (!WHOLE_NUMBER.test(raw)) return empty
-  const price = Number(raw)
+  const price = amountOf(raw)
+  if (price === undefined) return empty
   let i = 0
   while (i < LAST_STOP && PRICE_STOPS[i + 1] <= price) i++
   return i
+}
+
+/**
+ * A query value as a dollar amount, if it is one.
+ *
+ * @remarks
+ * Accepts decimals ("500000.50") as well as whole numbers, because the API
+ * does. The sliders use this to keep one end of a range from crossing the
+ * exact amount at the other end.
+ *
+ * @param raw - The query value.
+ * @returns The amount, or `undefined` for blank, negative or unreadable text.
+ */
+export function amountOf(raw: string): number | undefined {
+  if (raw.trim() === '') return undefined
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 0 ? n : undefined
 }

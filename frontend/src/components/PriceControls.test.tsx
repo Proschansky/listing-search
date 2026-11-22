@@ -144,6 +144,32 @@ describe('PriceRangeSlider', () => {
     expect(low.className).toMatch(/above/)
   })
 
+  it('never moves the maximum below a typed minimum that sits between stops', () => {
+    // $470,000 rounds down to the $450,000 stop. Lowering the max handle must
+    // stop at $470,000, or the next search would fail with min > max.
+    const { onChange, high } = setup('470000', '500000')
+    fireEvent.change(high, { target: { value: at(475_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '470000', max: '475000' })
+    fireEvent.change(high, { target: { value: at(450_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '470000', max: '470000' })
+  })
+
+  it('never moves the minimum above a decimal maximum', () => {
+    const { onChange, low, high } = setup('', '500000.50')
+    expect(high).toHaveValue(at(500_000))
+    fireEvent.change(low, { target: { value: at(600_000) } })
+    // Before the fix the decimal max counted as "no max", so this sent 600000.
+    expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000.50' })
+    fireEvent.change(low, { target: { value: at(400_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '500000.50' })
+  })
+
+  it('treats an unreadable other end as no limit', () => {
+    const { onChange, low } = setup('', 'abc')
+    fireEvent.change(low, { target: { value: at(600_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '600000', max: 'abc' })
+  })
+
   it('keeps a typed maximum above its range when the low handle moves', () => {
     const { onChange, low, high } = setup('', '80000000')
     expect(high).toHaveValue(String(LAST_STOP))

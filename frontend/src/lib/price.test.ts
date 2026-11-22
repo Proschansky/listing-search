@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LAST_STOP, PRICE_STOPS, cleanPrice, formatPrice, stopFor } from './price'
+import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, stopFor } from './price'
 
 describe('cleanPrice', () => {
   it.each([
@@ -55,10 +55,23 @@ describe('stopFor', () => {
     expect(PRICE_STOPS[stopFor('450000', 0)]).toBe(450_000)
     expect(PRICE_STOPS[stopFor('470000', 0)]).toBe(450_000)
     expect(stopFor('90000000', 0)).toBe(LAST_STOP)
+    expect(PRICE_STOPS[stopFor('500000.50', 0)]).toBe(500_000)
   })
 
   it('uses the given stop for blank or unreadable values', () => {
     expect(stopFor('', 7)).toBe(7)
     expect(stopFor('-5', LAST_STOP)).toBe(LAST_STOP)
+  })
+})
+
+describe('amountOf', () => {
+  it('reads whole and decimal amounts', () => {
+    expect(amountOf('470000')).toBe(470_000)
+    expect(amountOf('500000.50')).toBe(500_000.5)
+    expect(amountOf('0')).toBe(0)
+  })
+
+  it('returns undefined for blank, negative or unreadable text', () => {
+    for (const raw of ['', ' ', '-5', 'abc', 'Infinity']) expect(amountOf(raw)).toBeUndefined()
   })
 })
