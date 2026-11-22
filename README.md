@@ -18,13 +18,17 @@ It's a full-stack web app built for a software engineering assessment. It runs o
 - Share any view as a link. The search, sort, page and open listing are all in the URL.
 - Use it with a keyboard or screen reader, in light or dark mode, on a phone or a desktop.
 
+Dragging a price handle fills in the box above it, and typing an amount moves the handle:
+
+![Dragging the maximum and minimum price handles, then typing 650000 as the target budget, which shows as 650,000 once the box loses focus](docs/images/price.gif)
+
 Click any home to see why it ranked where it did. This one scored 0.717: its $470,000 price is close to the $500,000 target, and it had been on the market for three weeks. Two MLS feeds listed it, one as "55 Elm Ct" and one as "55 Elm Court", and the app shows it once.
 
-![The detail panel for 55 Elm Ct in dark mode, showing its facts, the score breakdown and both feeds' records](docs/images/details.png)
+![Clicking the 55 Elm Ct card in dark mode opens the detail panel with its facts, the score breakdown and both feeds' records](docs/images/details.gif)
 
 The map shows the same results, and clicking a marker opens the same panel.
 
-![The results on a map of northern Virginia](docs/images/map.jpg)
+![Switching the results to a map of northern Virginia and clicking a marker, which opens the detail panel for 123 Main St](docs/images/map.gif)
 
 On a phone, each card leads with the price and score, the two things people scan for.
 
