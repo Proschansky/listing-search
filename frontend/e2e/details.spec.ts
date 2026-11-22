@@ -61,6 +61,26 @@ test.describe('map view', () => {
     await evidence.capture('Map view')
     await markers.first().click({ force: true })
     await expect(page.getByRole('dialog')).toBeVisible()
+    await evidence.capture('Drawer over the map')
+
+    // The drawer and its backdrop sit above the map. Leaflet's own z-indexes
+    // (up to 1000) once leaked out and painted the map over the drawer, so
+    // check what's on top at points across the map, including its right edge
+    // (under the drawer panel) and the zoom controls.
+    const box = await map.boundingBox()
+    if (!box) throw new Error('map has no box')
+    const points = [
+      [box.x + 30, box.y + 30], // zoom controls
+      [box.x + box.width / 2, box.y + box.height / 2],
+      [box.x + box.width - 10, box.y + box.height / 2],
+    ]
+    for (const [x, y] of points) {
+      const onTop = await page.evaluate(
+        ([px, py]) => !!document.elementFromPoint(px, py)?.closest('.leaflet-container'),
+        [x, y],
+      )
+      expect(onTop, `map painted above the drawer at (${x}, ${y})`).toBe(false)
+    }
   })
 
   test('remembers the chosen view across reloads', async ({ page }) => {
