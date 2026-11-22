@@ -100,7 +100,7 @@ Every setting lives in `backend/app/config.py`. They're typed and checked at sta
 | `LISTING_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR` |
 | `LISTING_LOG_FORMAT` | `text` | `json` for one JSON object per line, which log tools such as Datadog read. `text` is easier to read by eye. |
 | `LISTING_CORS_ORIGINS` | the Vite dev addresses | JSON list of browser origins allowed to call the API directly |
-| `LISTING_RATE_LIMIT_ENABLED` | `true` | Turns rate limiting off. The end-to-end tests do this. |
+| `LISTING_RATE_LIMIT_ENABLED` | `true` (limiting on) | Set to `false` to turn rate limiting off. The end-to-end tests do this. |
 | `LISTING_RATE_LIMIT_PER_MINUTE` | `120` | Steady requests per minute per client IP address |
 | `LISTING_RATE_LIMIT_BURST` | `30` | Requests a client can make in a quick burst |
 
@@ -111,7 +111,7 @@ Every setting lives in `backend/app/config.py`. They're typed and checked at sta
 - Every request gets an ID: the caller's `X-Request-ID` header if it's a safe value, otherwise a new random one. The ID is on every log line for that request, in the `X-Request-ID` response header, and in error responses. The app shows it as "Reference: …", so a user's report leads straight to the right log lines. In Docker, nginx creates the ID as the request arrives.
 - Each request writes one access-log line with the method, path, query, status, duration and client. With `LISTING_LOG_FORMAT=json`, each line is a JSON object, with any error traceback kept in a single field.
 - Every response has a `Server-Timing` header, which shows the server's processing time in the browser's developer tools.
-- `/health/live` answers whenever the process is up. `/health/ready` answers 503 when the data didn't load. Kubernetes and load balancers expect this split: they stop sending traffic to an instance that isn't ready, and restart only one that has stopped responding. The Docker images use the readiness check for their `HEALTHCHECK`.
+- `/health/live` answers whenever the process is up. `/health/ready` answers 503 when the data didn't load. Kubernetes and load balancers expect this split: they stop sending traffic to an instance that isn't ready, and restart only one that has stopped responding. In Docker, the API image's `HEALTHCHECK` uses the readiness check. The frontend image's `HEALTHCHECK` requests nginx's `/healthz`, which only shows that nginx is serving files. It doesn't check the API, so a healthy frontend container doesn't mean searches work.
 
 ### Failure handling
 
@@ -122,7 +122,7 @@ Every setting lives in `backend/app/config.py`. They're typed and checked at sta
 
 ### Security headers
 
-Every API response sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and a `Content-Security-Policy` of `default-src 'none'`. The policy is relaxed only for the docs pages, which load their own scripts. nginx sets a policy for the app itself that allows only its own files plus OpenStreetMap map tiles. The containers run as non-root users.
+Every API response sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and a `Content-Security-Policy` of `default-src 'none'`. The policy is relaxed only for the docs pages, which load their own scripts. nginx sets a policy for the app itself that allows only its own files plus OpenStreetMap map tiles. The API container runs as a non-root user. The frontend container uses the standard nginx image, whose master process starts as root and runs its worker processes as the unprivileged `nginx` user.
 
 ## Frontend
 
@@ -173,7 +173,7 @@ src/components/
 | Accessibility, simulated browser | `npm run test:a11y` | axe-core (WCAG 2.0 to 2.2, levels A and AA, plus best practices) on the whole page in every state, plus landmarks, accessible names, keyboard order and screen-reader announcements. Each component test also runs axe. |
 | End-to-end | `npm run test:e2e` | Playwright against the real API and data: search, filters, validation, sorting, paging, search as you type, details and shared links, the map, saved searches, themes, failure handling (outages, retries, 500s), and axe in a real browser, color contrast included, in both themes. Runs at desktop and phone sizes. |
 
-Both halves fail below 95% coverage, for statements, branches, functions and lines. The thresholds are `fail_under` in `backend/pyproject.toml` and `thresholds` in `frontend/vite.config.ts`.
+Both halves fail below 95% coverage, measured differently. The backend has one combined threshold over statements and branches together (`fail_under = 95` in `backend/pyproject.toml`); function coverage isn't measured separately. The frontend has four separate thresholds, for statements, branches, functions and lines (`thresholds` in `frontend/vite.config.ts`).
 
 The tests use fixed dates and clocks, so they give the same results on any day. The end-to-end tests block map tiles, so they never need the internet, and they fail any test where the page logs a console error.
 
