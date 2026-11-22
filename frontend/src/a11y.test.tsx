@@ -211,8 +211,6 @@ describe('accessibility (beyond axe)', () => {
     await userEvent.keyboard('{Enter}')
     await userEvent.tab()
     expect(document.activeElement).toBe(screen.getByLabelText('Results per page'))
-    await userEvent.tab()
-    expect(document.activeElement).toBe(screen.getByLabelText(/Measure recency as of/))
     for (const status of ['active', 'pending', 'sold']) {
       await userEvent.tab()
       expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: status }))

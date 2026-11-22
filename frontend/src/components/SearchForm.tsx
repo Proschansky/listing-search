@@ -40,10 +40,14 @@ interface Props {
 const STATUSES: Status[] = ['active', 'pending', 'sold']
 
 /** Fields rendered as plain text inputs by the `field` helper. */
-type TextField = 'minPrice' | 'maxPrice' | 'minBedrooms' | 'city' | 'keyword' | 'targetBudget' | 'asOf'
+type TextField = 'minPrice' | 'maxPrice' | 'minBedrooms' | 'city' | 'keyword' | 'targetBudget'
 
 /**
- * Inputs for every filter, the target budget, status, page size and `asOf`.
+ * Inputs for every filter, the target budget, status and page size.
+ *
+ * `asOf` (the date recency is counted to) has no input here. Shoppers never
+ * need it; tests and demos set it in the URL (`?asOf=2026-09-05`), and App
+ * keeps passing it to the API.
  *
  * @remarks
  * A *controlled* component: it holds no state of its own. It renders whatever
@@ -190,9 +194,6 @@ export function SearchForm({
             </select>
             {errorFor('pageSize') && <small className={styles.fieldError}>{errorFor('pageSize')}</small>}
           </label>
-          {/* Lets you score recency as of a past date, which helps because the
-              sample listings are months old. */}
-          {field('asOf', 'Measure recency as of', { type: 'date' })}
         </div>
       </details>
 

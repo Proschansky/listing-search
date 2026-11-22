@@ -128,7 +128,7 @@ Every API response sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DEN
 
 | Feature | Where | Notes |
 |---|---|---|
-| Search form | `SearchForm.tsx` | Every filter, status toggles, and an Advanced section for page size and `asOf`. API errors appear next to their fields. |
+| Search form | `SearchForm.tsx` | Every filter, status toggles, and an Advanced section for page size. `asOf` has no input; it can only be set in the URL. API errors appear next to their fields. |
 | Search as you type | `App.tsx`, `useDebouncedCallback.ts` | Optional. Sends one search after typing pauses for 400 ms, not one per key press. |
 | Results | `ResultsTable.tsx` | Ranked cards with price, details, status badge, score bar and breakdown, and source feeds. Clicking a card opens the details. |
 | Sort | `SortControl.tsx` | Applies immediately, from page 1 |

@@ -8,7 +8,7 @@
  * @module
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState, type ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -73,12 +73,18 @@ describe('SearchForm', () => {
     expect(lastChange(onChange)).toMatchObject({ city: 'Vienna', keyword: 'pool' })
   })
 
-  it('updates the page size and as-of date under Advanced', async () => {
+  it('updates the page size under Advanced', async () => {
     const { onChange } = renderForm()
     await userEvent.click(screen.getByText('Advanced'))
     await userEvent.selectOptions(screen.getByLabelText('Results per page'), '50')
     expect(lastChange(onChange).pageSize).toBe('50')
-    fireEvent.change(screen.getByLabelText(/Measure recency as of/), { target: { value: '2026-09-01' } })
+  })
+
+  it('has no as-of date input, and keeps an asOf it was given', async () => {
+    const { onChange } = renderForm({ value: { ...EMPTY_QUERY, asOf: '2026-09-01' } })
+    await userEvent.click(screen.getByText('Advanced'))
+    expect(screen.queryByLabelText(/as of/i)).toBeNull()
+    await userEvent.type(screen.getByLabelText(/City/), 'R')
     expect(lastChange(onChange).asOf).toBe('2026-09-01')
   })
 
