@@ -196,8 +196,8 @@ export function SearchForm({
   }
   return (
     <form className={cx(ui.card, styles.form)} onSubmit={handleSubmit} aria-label="Search listings" noValidate>
-      {/* Main filters. type="number" brings up a numeric keypad on phones;
-          the values are still sent as strings and validated by the API. */}
+      {/* Main filters. Prices first, since they matter most to most buyers.
+          Every value is sent as a string and validated by the API. */}
       <div className={styles.grid}>
         {/* Price range: two boxes for exact amounts and one two-handle
             slider under them for rough ones. */}
@@ -212,11 +212,6 @@ export function SearchForm({
             />
           </div>
         </div>
-        {field('minBedrooms', 'Min bedrooms', { type: 'number', min: 0, step: 1 })}
-        {/* list="city-options" connects this input to the <datalist> below,
-            giving type-ahead suggestions while still allowing any text. */}
-        {field('city', 'City', { list: 'city-options', placeholder: 'Any city' })}
-        {field('keyword', 'Keywords', { placeholder: 'e.g. pool, garage' })}
         <div className={styles.priceField}>
           {priceField('targetBudget', 'Target budget ($)', 'Ranks by fit')}
           <PriceSlider
@@ -225,6 +220,14 @@ export function SearchForm({
             value={value.targetBudget}
             onChange={(v) => onChange({ ...value, targetBudget: v })}
           />
+        </div>
+        {field('minBedrooms', 'Min bedrooms', { type: 'number', min: 0, step: 1 })}
+        {/* list="city-options" connects this input to the <datalist> below,
+            giving type-ahead suggestions while still allowing any text. */}
+        {field('city', 'City', { list: 'city-options', placeholder: 'Any city' })}
+        {/* Keywords get the full width, like a search bar. */}
+        <div className={styles.wide}>
+          {field('keyword', 'Keywords', { placeholder: 'e.g. pool, garage, near Metro' })}
         </div>
       </div>
       <datalist id="city-options">

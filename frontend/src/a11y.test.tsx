@@ -205,11 +205,11 @@ describe('accessibility (beyond axe)', () => {
       /Max price/,
       'Lowest price',
       'Highest price',
+      /Target budget/,
+      'Budget',
       /Min bedrooms/,
       /City/,
       /Keywords/,
-      /Target budget/,
-      'Budget',
     ]
     for (const label of order) {
       await userEvent.tab()

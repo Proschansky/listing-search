@@ -46,6 +46,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.35rem 0.9rem;
+  // Keep both boxes at the top when one shows an error under it.
+  align-items: start;
   min-width: 0;
 
   @include m.phone {
@@ -54,6 +56,11 @@
 }
 
 .slider {
+  grid-column: 1 / -1;
+}
+
+// A field that takes the whole row.
+.wide {
   grid-column: 1 / -1;
 }
 
