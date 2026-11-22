@@ -15,18 +15,30 @@ import { AxeBuilder } from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, openApp, settled, test } from './fixtures'
 
+// A full-page axe audit is the heaviest step in the suite. On a busy machine
+// (the pre-push hook runs everything back to back) it can pass 30 s, so these
+// tests get 60 s. Every other spec keeps the 30 s default.
+test.describe.configure({ timeout: 60_000 })
+
 /** Run axe on the page and return the violations, with readable output on failure. */
 async function audit(page: Page, exclude: string[] = []) {
   // Audit the settled page: nothing loading, no entrance animations running.
   await settled(page)
   // Only animations that end: an infinite one (a spinner) never "finishes".
+  // Capped at 2 s: an animation whose element is replaced mid-run (e.g. a
+  // card re-rendered under the opening drawer) can leave a `finished`
+  // promise that never settles, and the audit must not hang on it. Every
+  // real animation in the app lasts well under a second.
   await page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getTiming().iterations !== Infinity)
-        .map((a) => a.finished.catch(() => {})),
-    ),
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+          .map((a) => a.finished.catch(() => {})),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]),
   )
   let builder = new AxeBuilder({ page }).withTags([
     'wcag2a',
