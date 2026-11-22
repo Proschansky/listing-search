@@ -1,0 +1,84 @@
+// Price sliders. Native range inputs with their default look removed: a thin
+// track, an accent fill between --from and --to (set inline by the
+// component), and round handles. The two-handle slider stacks two inputs over
+// one track; only the handles take the pointer, so either can be dragged.
+
+@use 'mixins' as m;
+
+$thumb: 20px;
+$track: 4px;
+// Each input is at least 24px tall, the WCAG 2.2 minimum touch target.
+$target: 24px;
+
+.track {
+  position: relative;
+  height: $target;
+
+  // The rail, with the chosen part filled in.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: $track;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--border-strong) var(--from),
+      var(--accent) var(--from),
+      var(--accent) var(--to),
+      var(--border-strong) var(--to)
+    );
+  }
+}
+
+@mixin thumb {
+  width: $thumb;
+  height: $thumb;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: $target;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  outline: none;
+
+  &::-webkit-slider-runnable-track {
+    background: transparent;
+  }
+  &::-moz-range-track {
+    background: transparent;
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    @include thumb;
+  }
+  &::-moz-range-thumb {
+    @include thumb;
+  }
+
+  &:focus-visible::-webkit-slider-thumb {
+    @include m.focus-ring;
+  }
+  &:focus-visible::-moz-range-thumb {
+    @include m.focus-ring;
+  }
+}
+
+// Two handles: the inputs ignore the pointer except on their handles, so a
+// click on one input doesn't land on the other.
+.dual .range {
+  pointer-events: none;
+}

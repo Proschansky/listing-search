@@ -200,7 +200,17 @@ describe('accessibility (beyond axe)', () => {
       expect(document.activeElement).toBe(screen.getByRole('button', { name }))
     }
     // ...then the search form, top to bottom.
-    const order = [/Min price/, /Max price/, /Min bedrooms/, /City/, /Keywords/, /Target budget/]
+    const order = [
+      /Min price/,
+      /Max price/,
+      'Lowest price',
+      'Highest price',
+      /Target budget/,
+      'Budget',
+      /Min bedrooms/,
+      /City/,
+      /Keywords/,
+    ]
     for (const label of order) {
       await userEvent.tab()
       expect(document.activeElement).toBe(screen.getByLabelText(label))
@@ -211,8 +221,6 @@ describe('accessibility (beyond axe)', () => {
     await userEvent.keyboard('{Enter}')
     await userEvent.tab()
     expect(document.activeElement).toBe(screen.getByLabelText('Results per page'))
-    await userEvent.tab()
-    expect(document.activeElement).toBe(screen.getByLabelText(/Measure recency as of/))
     for (const status of ['active', 'pending', 'sold']) {
       await userEvent.tab()
       expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: status }))

@@ -2,6 +2,10 @@
 
 .map-card {
   overflow: hidden; // clip the map's square corners to the card's radius
+  // Leaflet gives its panes and controls z-indexes from 400 to 1000, which
+  // would put the map above the sticky top bar (10) and the drawer (50).
+  // A new stacking context keeps those numbers inside the card.
+  isolation: isolate;
 }
 
 .map {

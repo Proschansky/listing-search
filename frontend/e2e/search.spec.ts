@@ -44,6 +44,93 @@ test.describe('search', () => {
     await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
   })
 
+  test('sets prices by typing with commas or with the slider', async ({ page, evidence }) => {
+    await openApp(page)
+    const maxBox = page.getByLabel('Max price ($)')
+    await maxBox.fill('$500,000')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect.poll(() => urlParams(page).get('maxPrice')).toBe('500000')
+    await expect(maxBox).toHaveValue('500,000')
+
+    // One arrow press moves the handle down one $25,000 step.
+    const handle = page.getByRole('slider', { name: 'Highest price' })
+    await expect(handle).toHaveAttribute('aria-valuetext', '$500,000')
+    await handle.focus()
+    await page.keyboard.press('ArrowLeft')
+    await expect(maxBox).toHaveValue('475,000')
+    await expect(handle).toHaveAttribute('aria-valuetext', '$475,000')
+    await evidence.capture('Max price set with the slider')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect.poll(() => urlParams(page).get('maxPrice')).toBe('475000')
+  })
+
+  test('drags both price handles with a mouse', async ({ page, evidence }) => {
+    // The two handles are two range inputs stacked on one track, and only
+    // the round handles take the pointer. A real drag is the only way to
+    // check that each handle can be grabbed and moves the right value.
+    await openApp(page)
+    const high = page.getByRole('slider', { name: 'Highest price' })
+    const low = page.getByRole('slider', { name: 'Lowest price' })
+    const box = await high.boundingBox()
+    if (!box) throw new Error('slider has no box')
+    const y = box.y + box.height / 2
+    const thumb = 10 // half the handle's width
+
+    // High handle starts at the right end ("No max"); drag it to the middle.
+    await page.mouse.move(box.x + box.width - thumb, y)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2, y, { steps: 8 })
+    await page.mouse.up()
+    await expect(page.getByLabel('Max price ($)')).not.toHaveValue('')
+    await expect(page.getByLabel('Min price ($)')).toHaveValue('')
+
+    // Low handle starts at the left end ("No min"); drag it a quarter of the way.
+    await page.mouse.move(box.x + thumb, y)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 4, y, { steps: 8 })
+    await page.mouse.up()
+    await expect(page.getByLabel('Min price ($)')).not.toHaveValue('')
+    await evidence.capture('Price range set by dragging both handles')
+
+    // The range stays valid: low below high, so the search succeeds.
+    const lowValue = Number(await low.inputValue())
+    expect(lowValue).toBeGreaterThan(0)
+    expect(lowValue).toBeLessThan(Number(await high.inputValue()))
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect(page.getByRole('heading', { name: /Results · \d+ found/ })).toBeVisible()
+    await expect.poll(() => urlParams(page).get('minPrice')).toBeTruthy()
+    await expect.poll(() => urlParams(page).get('maxPrice')).toBeTruthy()
+  })
+
+  test('pulls apart two price handles that sit on the same spot, in either direction', async ({ page }) => {
+    // With min = max, the handles overlap and only the top one can be
+    // grabbed. Dragging it either way must still widen the range.
+    const minBox = page.getByLabel('Min price ($)')
+    const maxBox = page.getByLabel('Max price ($)')
+    const dragShared = async (dx: number) => {
+      const high = page.getByRole('slider', { name: 'Highest price' })
+      const box = await high.boundingBox()
+      if (!box) throw new Error('slider has no box')
+      const frac = await high.evaluate((el: HTMLInputElement) => Number(el.value) / Number(el.max))
+      const x = box.x + 10 + (box.width - 20) * frac // centre of the 20px handle
+      const y = box.y + box.height / 2
+      await page.mouse.move(x, y)
+      await page.mouse.down()
+      await page.mouse.move(x + dx, y, { steps: 8 })
+      await page.mouse.up()
+    }
+
+    await openApp(page, '?minPrice=500000&maxPrice=500000')
+    await dragShared(-60)
+    await expect(maxBox).toHaveValue('500,000')
+    expect(Number((await minBox.inputValue()).replace(/,/g, ''))).toBeLessThan(500_000)
+
+    await openApp(page, '?minPrice=500000&maxPrice=500000')
+    await dragShared(60)
+    await expect(minBox).toHaveValue('500,000')
+    expect(Number((await maxBox.inputValue()).replace(/,/g, ''))).toBeGreaterThan(500_000)
+  })
+
   test('explains an unknown city with a warning, not an error', async ({ page }) => {
     await openApp(page, '?city=Atlantis')
     await expect(page.getByText(/No listings in city 'Atlantis'/)).toBeVisible()

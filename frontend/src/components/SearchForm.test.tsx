@@ -13,6 +13,7 @@ import userEvent from '@testing-library/user-event'
 import { useState, type ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EMPTY_QUERY, type SearchQuery } from '../api'
+import { PRICE_STOPS } from '../lib/price'
 import { COMPONENT_ONLY_SKIP, expectNoA11yViolations } from '../test/axe'
 import { SearchForm } from './SearchForm'
 
@@ -67,18 +68,51 @@ describe('SearchForm', () => {
     expect(lastChange(onChange)[field]).toBe(text)
   })
 
+  it('takes prices with commas and a dollar sign, and shows commas afterwards', async () => {
+    const { onChange } = renderForm()
+    const box = screen.getByLabelText(/Max price/)
+    await userEvent.type(box, '$1,250,000')
+    expect(lastChange(onChange).maxPrice).toBe('1250000')
+    await userEvent.tab()
+    expect(box).toHaveValue('1,250,000')
+  })
+
+  it('sets the price range and the target budget from the sliders', () => {
+    const { onChange } = renderForm({ value: { ...EMPTY_QUERY, city: 'Vienna' } })
+    const at = (price: number) => String(PRICE_STOPS.indexOf(price))
+    // The range slider's position 0 is "no min", so its stops start at 1.
+    const pos = (price: number) => String(PRICE_STOPS.indexOf(price) + 1)
+    fireEvent.change(screen.getByRole('slider', { name: 'Lowest price' }), { target: { value: pos(400_000) } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Highest price' }), { target: { value: pos(2_000_000) } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Budget' }), { target: { value: at(750_000) } })
+    expect(lastChange(onChange)).toMatchObject({
+      city: 'Vienna',
+      minPrice: '400000',
+      maxPrice: '2000000',
+      targetBudget: '750000',
+    })
+    // The boxes follow the sliders.
+    expect(screen.getByLabelText(/Min price/)).toHaveValue('400,000')
+  })
+
   it('keeps other fields when one changes', async () => {
     const { onChange } = renderForm({ value: { ...EMPTY_QUERY, city: 'Vienna' } })
     await userEvent.type(screen.getByLabelText(/Keywords/), 'pool')
     expect(lastChange(onChange)).toMatchObject({ city: 'Vienna', keyword: 'pool' })
   })
 
-  it('updates the page size and as-of date under Advanced', async () => {
+  it('updates the page size under Advanced', async () => {
     const { onChange } = renderForm()
     await userEvent.click(screen.getByText('Advanced'))
     await userEvent.selectOptions(screen.getByLabelText('Results per page'), '50')
     expect(lastChange(onChange).pageSize).toBe('50')
-    fireEvent.change(screen.getByLabelText(/Measure recency as of/), { target: { value: '2026-09-01' } })
+  })
+
+  it('has no as-of date input, and keeps an asOf it was given', async () => {
+    const { onChange } = renderForm({ value: { ...EMPTY_QUERY, asOf: '2026-09-01' } })
+    await userEvent.click(screen.getByText('Advanced'))
+    expect(screen.queryByLabelText(/as of/i)).toBeNull()
+    await userEvent.type(screen.getByLabelText(/City/), 'R')
     expect(lastChange(onChange).asOf).toBe('2026-09-01')
   })
 
