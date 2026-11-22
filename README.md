@@ -62,7 +62,7 @@ The data is a sample, but the service around it behaves like a production one:
 - Request IDs. Every request gets an ID that appears in the logs and in error messages, so a user's bug report leads straight to the right log lines.
 - Rate limiting. Each client can make about 120 requests a minute. Extra requests are refused with a message saying how many seconds to wait.
 - Graceful failure. If the data file is missing or broken, the service still starts and its health check explains what's wrong. If the API is briefly unreachable, the app retries on its own, and shows a "Try again" button only when it has to.
-- Security headers and non-root containers.
+- Security headers on every response, and the API container runs as a non-root user.
 - Settings come from environment variables and are checked at startup. [The engineering guide](docs/engineering.md#configuration) lists them.
 
 ## How quality is enforced

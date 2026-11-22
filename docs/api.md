@@ -56,6 +56,8 @@ A successful search:
 
 Every error uses the same shape, defined in `backend/app/errors.py`, so a client needs only one error parser. Check `code`. The `message` wording may change.
 
+One exception: when the service isn't ready, `GET /api/v1/health/ready` returns 503 with its usual health body (`status`, `version`, `environment` and `checks`), not this error shape. Load balancers and Kubernetes only read the status code, and the reason for the failure is in `checks.data.error`.
+
 | Status | `code` | When |
 |---|---|---|
 | 400 | `INVALID_PARAMETERS` | Any bad input. `details` lists every bad field at once. |
