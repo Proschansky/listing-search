@@ -71,7 +71,17 @@ describe('amountOf', () => {
     expect(amountOf('0')).toBe(0)
   })
 
-  it('returns undefined for blank, negative or unreadable text', () => {
-    for (const raw of ['', ' ', '-5', 'abc', 'Infinity']) expect(amountOf(raw)).toBeUndefined()
+  it('reads the other forms the API accepts', () => {
+    expect(amountOf('1_000_000')).toBe(1_000_000)
+    expect(amountOf('1e6')).toBe(1_000_000)
+    expect(amountOf('.5')).toBe(0.5)
+    expect(amountOf('5.')).toBe(5)
+    expect(amountOf('+5')).toBe(5)
+    expect(amountOf(' 5 ')).toBe(5)
+  })
+
+  it('returns undefined for anything the API rejects or that is negative', () => {
+    for (const raw of ['', ' ', '-5', 'abc', 'Infinity', 'nan', '0x10', '1__0', '_1', '1_', '1e', '.', '1e999'])
+      expect(amountOf(raw), raw).toBeUndefined()
   })
 })

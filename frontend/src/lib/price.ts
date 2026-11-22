@@ -82,15 +82,29 @@ export function stopFor(raw: string, empty: number): number {
  * A query value as a dollar amount, if it is one.
  *
  * @remarks
- * Accepts decimals ("500000.50") as well as whole numbers, because the API
- * does. The sliders use this to keep one end of a range from crossing the
- * exact amount at the other end.
+ * Reads text the way the API does (Python's `float()`), so the sliders and
+ * the API agree on what counts as a price. That means decimals ("500000.50"),
+ * exponents ("1e6") and underscores between digits ("1_000_000"), but not
+ * hex ("0x10"), which JavaScript's `Number()` would accept. The sliders use
+ * this to keep one end of a range from crossing the exact amount at the
+ * other end.
  *
  * @param raw - The query value.
  * @returns The amount, or `undefined` for blank, negative or unreadable text.
  */
 export function amountOf(raw: string): number | undefined {
-  if (raw.trim() === '') return undefined
-  const n = Number(raw)
-  return Number.isFinite(n) && n >= 0 ? n : undefined
+  const text = raw.trim()
+  if (!PYTHON_FLOAT.test(text)) return undefined
+  const n = Number(text.replace(/_/g, ''))
+  return Number.isFinite(n) ? n : undefined
 }
+
+/** Digits, optionally with single underscores between them. */
+const DIGITS = String.raw`\d(?:_?\d)*`
+
+/**
+ * A non-negative number as Python's `float()` reads it: digits with an
+ * optional fraction and exponent. Negative numbers are left out because no
+ * price can be negative.
+ */
+const PYTHON_FLOAT = new RegExp(`^\\+?(?:${DIGITS}(?:\\.(?:${DIGITS})?)?|\\.${DIGITS})(?:[eE][+-]?${DIGITS})?$`)

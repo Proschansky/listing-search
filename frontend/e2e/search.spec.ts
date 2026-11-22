@@ -64,6 +64,44 @@ test.describe('search', () => {
     await expect.poll(() => urlParams(page).get('maxPrice')).toBe('475000')
   })
 
+  test('drags both price handles with a mouse', async ({ page, evidence }) => {
+    // The two handles are two range inputs stacked on one track, and only
+    // the round handles take the pointer. A real drag is the only way to
+    // check that each handle can be grabbed and moves the right value.
+    await openApp(page)
+    const high = page.getByRole('slider', { name: 'Highest price' })
+    const low = page.getByRole('slider', { name: 'Lowest price' })
+    const box = await high.boundingBox()
+    if (!box) throw new Error('slider has no box')
+    const y = box.y + box.height / 2
+    const thumb = 10 // half the handle's width
+
+    // High handle starts at the right end ("No max"); drag it to the middle.
+    await page.mouse.move(box.x + box.width - thumb, y)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2, y, { steps: 8 })
+    await page.mouse.up()
+    await expect(page.getByLabel('Max price ($)')).not.toHaveValue('')
+    await expect(page.getByLabel('Min price ($)')).toHaveValue('')
+
+    // Low handle starts at the left end ("No min"); drag it a quarter of the way.
+    await page.mouse.move(box.x + thumb, y)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 4, y, { steps: 8 })
+    await page.mouse.up()
+    await expect(page.getByLabel('Min price ($)')).not.toHaveValue('')
+    await evidence.capture('Price range set by dragging both handles')
+
+    // The range stays valid: low below high, so the search succeeds.
+    const lowValue = Number(await low.inputValue())
+    expect(lowValue).toBeGreaterThan(0)
+    expect(lowValue).toBeLessThan(Number(await high.inputValue()))
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect(page.getByRole('heading', { name: /Results · \d+ found/ })).toBeVisible()
+    await expect.poll(() => urlParams(page).get('minPrice')).toBeTruthy()
+    await expect.poll(() => urlParams(page).get('maxPrice')).toBeTruthy()
+  })
+
   test('explains an unknown city with a warning, not an error', async ({ page }) => {
     await openApp(page, '?city=Atlantis')
     await expect(page.getByText(/No listings in city 'Atlantis'/)).toBeVisible()
