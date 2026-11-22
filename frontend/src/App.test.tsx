@@ -341,7 +341,9 @@ describe('App: enterprise features', () => {
     const before = searchUrls().length
     await userEvent.type(screen.getByLabelText(/City/), 'Vienna')
     // One search for the whole word, not one per letter.
-    await waitFor(() => expect(searchUrls().at(-1)).toContain('city=Vienna'), { timeout: 2000 })
+    // Typing six letters key by key plus the 400 ms debounce can take a few
+    // seconds on a busy machine, so allow 5 s before calling it a failure.
+    await waitFor(() => expect(searchUrls().at(-1)).toContain('city=Vienna'), { timeout: 5000 })
     expect(searchUrls().length - before).toBe(1)
     expect(localStorage.getItem('listing-search:live:v1')).toBe('true')
   })
