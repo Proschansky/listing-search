@@ -10,7 +10,7 @@
 # After the gate passes, this hook records the commit's tree hash: git's
 # fingerprint of the exact files in it, independent of commit messages,
 # authors or dates. Pushing a commit whose tree is already recorded skips the
-# gate, because those exact files have already passed. That covers re-pushing
+# lint, tests and e2e, because those exact files have already passed them. That covers re-pushing
 # after a dropped connection, pushing the same branch twice, and force-pushing
 # after only rewording commit messages.
 #
@@ -22,15 +22,16 @@
 # Records live in .git/checked-trees (local to this clone, never pushed).
 # Delete that file to force a full run.
 #
-# Documentation-only pushes skip the gate too: if every file changed since
+# Documentation-only pushes skip lint, tests and e2e too: if every file changed since
 # the remote branch (or, for a new branch, since it left origin/main) is
 # Markdown or under docs/, nothing that the gate tests can have changed.
 #
 # Vulnerability check: if a runtime dependency has a fixable high or critical
 # vulnerability it stops the push, unless you type 'override' and a reason at
 # its prompt (logged in .git/vuln-overrides.log). The prompt only appears in an
-# interactive terminal; CI can never override. A skipped run skips this check
-# too, which is safe: it already passed for these exact files.
+# interactive terminal; CI can never override. The vulnerability check is
+# never skipped or cached: it runs on every push that sends code, because new
+# advisories are published all the time.
 #
 # Skip with `git push --no-verify` only if you accept CI catching it instead.
 set -euo pipefail
@@ -54,10 +55,13 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue
   trees="$trees $(git rev-parse "$local_sha^{tree}")"
   # What's new compared with the remote: the remote branch's current commit,
-  # or for a new branch, where it left origin/main. If neither can be found,
-  # assume code changed.
-  if [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
-    base="$remote_sha"
+  # or for a new branch, where it left origin/main. If the remote branch
+  # exists but its commit isn't available here (not fetched), the base is
+  # unknown: a force-push could be removing code we can't see, so assume code
+  # changed. The origin/main fallback is only for branches that are new.
+  base=""
+  if [ "$remote_sha" != "$zero" ]; then
+    if git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then base="$remote_sha"; fi
   else
     base="$(git merge-base "$local_sha" origin/main 2>/dev/null || true)"
   fi
@@ -68,14 +72,22 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   while IFS= read -r changed; do
     [ -z "$changed" ] && continue
     is_docs "$changed" || docs_only=false
-  done < <(git diff --name-only "$base" "$local_sha")
+  # --no-renames: a rename is listed as a deletion plus an addition, so moving
+  # code into docs/ still counts as a code change.
+  done < <(git diff --no-renames --name-only "$base" "$local_sha")
 done
 
 # Only deleting remote branches: no code is being pushed, so nothing to check.
 [ -z "$trees" ] && exit 0
 
+# The vulnerability check always runs, before any shortcut below. It reads
+# live advisory data, so code that passed yesterday can have a newly
+# published, fixable vulnerability today, and its result (or an override)
+# must never be reused. Only lint, tests and e2e are skipped or cached.
+make --no-print-directory audit
+
 if [ "$docs_only" = true ]; then
-  printf '\033[32mpre-push: only documentation changed; skipping the gate.\033[0m\n'
+  printf '\033[32mpre-push: only documentation changed; skipping lint, tests and e2e.\033[0m\n'
   exit 0
 fi
 
@@ -85,12 +97,13 @@ for tree in $trees; do
 done
 
 if [ -z "$unchecked" ]; then
-  printf '\033[32mpre-push: these exact files already passed the full gate; skipping it.\033[0m\n'
+  printf '\033[32mpre-push: these exact files already passed lint, tests and e2e; skipping them.\033[0m\n'
   printf '(Delete %s to force a full run.)\n' "$stamps"
   exit 0
 fi
 
-make --no-print-directory ci
+# The rest of `make ci` (the audit already ran above).
+make --no-print-directory check e2e
 
 # Record what was actually tested: the checked-out tree, if it's clean and is
 # one of the trees being pushed.
@@ -98,7 +111,9 @@ head_tree="$(git rev-parse HEAD^{tree})"
 if [ -z "$(git status --porcelain)" ] && [[ " $unchecked " == *" $head_tree "* ]]; then
   echo "$head_tree" >> "$stamps"
   # Keep the file small: the last 200 checked trees are plenty.
-  tail -n 200 "$stamps" > "$stamps.tmp" && mv "$stamps.tmp" "$stamps"
+  # A unique temp file per run, so two pushes finishing at once can't collide.
+  tmp="$(mktemp "$stamps.XXXXXX")"
+  tail -n 200 "$stamps" > "$tmp" && mv "$tmp" "$stamps"
 fi
 
 printf '\n\033[32mpre-push checks passed\033[0m\n'

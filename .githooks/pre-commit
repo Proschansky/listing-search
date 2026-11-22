@@ -11,7 +11,10 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-staged=$(git diff --cached --name-only --diff-filter=ACMR)
+# Every staged path, deletions included, with renames split into a deletion
+# and an addition (--no-renames). Otherwise deleting or moving a code file
+# alongside a README edit would look like a documentation-only commit.
+staged=$(git diff --cached --name-only --no-renames)
 [ -z "$staged" ] && exit 0
 
 # Documentation only (Markdown files, anything under docs/): there's nothing
