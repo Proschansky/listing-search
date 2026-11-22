@@ -10,7 +10,7 @@ Monorepo: `backend/` (FastAPI, Python 3.10+) and `frontend/` (React 19 + TypeScr
 - **Tests for everything:** every frontend `.ts`/`.tsx` module gets a `*.test.ts(x)` beside it; every backend module gets `backend/tests/test_*.py`. New user flows get a Playwright spec in `frontend/e2e/`.
 - **Coverage ≥ 95%** on both halves (statements, branches, functions, lines). Never lower a threshold to land a change.
 - **Detailed comments:** each file opens with what it does and why. Explain *why* in comments, not just *what*, and number the steps in longer functions. Use TSDoc in TypeScript and docstrings in Python.
-- **The README stays current.** A new feature, setting, endpoint or command gets documented in the same change.
+- **Docs stay current.** A new feature, setting, endpoint or command gets documented in the same change. `README.md` is the short overview for product managers, engineering managers and prospective users; reference detail goes in `docs/` (`api.md`, `ranking.md`, `engineering.md`). Write docs in plain English: lead with the point, keep sentences short, explain a technical term the first time it appears, and avoid AI-sounding filler (staged openers, forced lists of three, inflated claims, decorative bold).
 
 ## Commands
 
