@@ -385,7 +385,9 @@ Install the hooks once per clone with `make hooks` (or `make setup`). They're ve
 
 `make hooks` also changes one setting in this clone's git config (`.git/config`, never your global config): it sets `core.sshCommand` to `ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20`. Git opens its SSH connection to GitHub before the pre-push hook runs and sends the commits after it, and the full check takes a few minutes, long enough for GitHub to drop an idle connection with "the remote end hung up unexpectedly". The keepalive pings the connection every 30 seconds while the hook runs.
 
-- It's only set when no `core.sshCommand` is configured at any level. If you already have one (globally or in this repo, for example to pick an SSH key or use a wrapper tool), it's left alone and the installer prints the options to add to your own command. Running `make hooks` again changes nothing.
+- It's only set when you haven't chosen an SSH command yourself. It's skipped if the `GIT_SSH_COMMAND` or `GIT_SSH` environment variable is set when `make hooks` runs, or if `core.sshCommand` is already configured at any level (globally or in this repo, for example to pick an SSH key or use a wrapper tool). In those cases nothing is written, and the installer prints the options to add to your own command. `GIT_SSH` matters most: git ranks it below `core.sshCommand`, so writing the setting would override a `GIT_SSH` wrapper.
+- If an earlier `make hooks` added the setting and you've since set one of those variables, running `make hooks` again removes it. Otherwise re-running changes nothing.
+- The installer only sees environment variables present when it runs. If you set `GIT_SSH` in a shell profile but ran `make hooks` from somewhere that doesn't load it (an IDE, for example), remove the setting by hand with the command below.
 - To check it: `git config --local --get core.sshCommand`
 - To remove it: `git config --local --unset core.sshCommand`. Pushes still work; long pre-push runs may drop the connection again.
 - It has no effect on HTTPS remotes.
