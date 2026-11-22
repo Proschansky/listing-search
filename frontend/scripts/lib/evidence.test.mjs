@@ -9,6 +9,7 @@ import {
   buildEvidenceMarkdown,
   END_MARKER,
   escapeHtml,
+  MAP_TILES_NOTE,
   MAX_BODY_CHARS,
   pickSpecs,
   previewBody,
@@ -152,6 +153,30 @@ const test = (overrides = {}) => ({
 
 describe('buildEvidenceMarkdown', () => {
   const imageUrl = (p) => `https://img/${p}`
+
+  it('adds the map note above the first test when any test had its map tiles blocked', () => {
+    const md = buildEvidenceMarkdown({
+      tests: [test(), test({ title: 'map view', mapTilesBlocked: true })],
+      imageUrl,
+      reason: 'r',
+      commit: 'c',
+    })
+    expect(md).toContain(MAP_TILES_NOTE)
+    expect(MAP_TILES_NOTE.startsWith('> [!NOTE]\n> Map screenshots show markers on a blank background')).toBe(true)
+    // Above the accordion: before the first <details>.
+    expect(md.indexOf(MAP_TILES_NOTE)).toBeLessThan(md.indexOf('<details'))
+    expect(md.split(MAP_TILES_NOTE)).toHaveLength(2) // once, not per test
+  })
+
+  it('leaves the map note out when no test touched the map', () => {
+    const md = buildEvidenceMarkdown({
+      tests: [test(), test({ mapTilesBlocked: false })],
+      imageUrl,
+      reason: 'r',
+      commit: 'c',
+    })
+    expect(md).not.toContain('[!NOTE]')
+  })
 
   it('wraps a per-test section in the markers', () => {
     const md = buildEvidenceMarkdown({ tests: [test()], imageUrl, reason: 'changed specs: x', commit: 'abc1234' })
