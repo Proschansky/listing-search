@@ -102,6 +102,35 @@ test.describe('search', () => {
     await expect.poll(() => urlParams(page).get('maxPrice')).toBeTruthy()
   })
 
+  test('pulls apart two price handles that sit on the same spot, in either direction', async ({ page }) => {
+    // With min = max, the handles overlap and only the top one can be
+    // grabbed. Dragging it either way must still widen the range.
+    const minBox = page.getByLabel('Min price ($)')
+    const maxBox = page.getByLabel('Max price ($)')
+    const dragShared = async (dx: number) => {
+      const high = page.getByRole('slider', { name: 'Highest price' })
+      const box = await high.boundingBox()
+      if (!box) throw new Error('slider has no box')
+      const frac = await high.evaluate((el: HTMLInputElement) => Number(el.value) / Number(el.max))
+      const x = box.x + 10 + (box.width - 20) * frac // centre of the 20px handle
+      const y = box.y + box.height / 2
+      await page.mouse.move(x, y)
+      await page.mouse.down()
+      await page.mouse.move(x + dx, y, { steps: 8 })
+      await page.mouse.up()
+    }
+
+    await openApp(page, '?minPrice=500000&maxPrice=500000')
+    await dragShared(-60)
+    await expect(maxBox).toHaveValue('500,000')
+    expect(Number((await minBox.inputValue()).replace(/,/g, ''))).toBeLessThan(500_000)
+
+    await openApp(page, '?minPrice=500000&maxPrice=500000')
+    await dragShared(60)
+    await expect(minBox).toHaveValue('500,000')
+    expect(Number((await maxBox.inputValue()).replace(/,/g, ''))).toBeGreaterThan(500_000)
+  })
+
   test('explains an unknown city with a warning, not an error', async ({ page }) => {
     await openApp(page, '?city=Atlantis')
     await expect(page.getByText(/No listings in city 'Atlantis'/)).toBeVisible()

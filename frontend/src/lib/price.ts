@@ -82,29 +82,107 @@ export function stopFor(raw: string, empty: number): number {
  * A query value as a dollar amount, if it is one.
  *
  * @remarks
- * Reads text the way the API does (Python's `float()`), so the sliders and
- * the API agree on what counts as a price. That means decimals ("500000.50"),
- * exponents ("1e6") and underscores between digits ("1_000_000"), but not
- * hex ("0x10"), which JavaScript's `Number()` would accept. The sliders use
- * this to keep one end of a range from crossing the exact amount at the
- * other end.
+ * Reads text the way the API does (Python's `float()` in
+ * `backend/app/validation.py`), so the sliders and the API agree on what
+ * counts as a price:
+ * - decimals ("500000.50"), exponents ("1e6") and underscores between
+ *   digits ("1_000_000");
+ * - digits from any script, such as Arabic-Indic "٥٠٠٠٠٠";
+ * - a sign, with the result checked after conversion, so "-0" is $0 and
+ *   "-5" isn't a price;
+ * - but not hex ("0x10"), which JavaScript's `Number()` would accept.
+ *
+ * The sliders use this to keep one end of a range from crossing the exact
+ * amount at the other end.
  *
  * @param raw - The query value.
  * @returns The amount, or `undefined` for blank, negative or unreadable text.
  */
 export function amountOf(raw: string): number | undefined {
-  const text = raw.trim()
+  const text = raw.trim().replace(/\p{Nd}/gu, asciiDigit)
   if (!PYTHON_FLOAT.test(text)) return undefined
   const n = Number(text.replace(/_/g, ''))
-  return Number.isFinite(n) ? n : undefined
+  if (!Number.isFinite(n) || n < 0) return undefined
+  return n === 0 ? 0 : n // turn -0 into 0
+}
+
+/**
+ * The ASCII digit for a decimal digit from any script.
+ *
+ * @remarks
+ * Unicode keeps each script's digits as ten consecutive code points, 0 to 9
+ * (a few blocks hold several such runs back to back). So a digit's value is
+ * its distance from the start of its run, modulo 10.
+ *
+ * @param digit - One character in Unicode category Nd.
+ * @returns "0" to "9".
+ */
+function asciiDigit(digit: string): string {
+  const code = digit.codePointAt(0)!
+  let start = code
+  while (/\p{Nd}/u.test(String.fromCodePoint(start - 1))) start--
+  return String((code - start) % 10)
 }
 
 /** Digits, optionally with single underscores between them. */
 const DIGITS = String.raw`\d(?:_?\d)*`
 
+/** A number as Python's `float()` reads it: sign, digits, fraction, exponent. */
+const PYTHON_FLOAT = new RegExp(`^[+-]?(?:${DIGITS}(?:\\.(?:${DIGITS})?)?|\\.${DIGITS})(?:[eE][+-]?${DIGITS})?$`)
+
+/** A price range as query values; `""` means no limit at that end. */
+export interface PriceRange {
+  min: string
+  max: string
+}
+
 /**
- * A non-negative number as Python's `float()` reads it: digits with an
- * optional fraction and exponent. Negative numbers are left out because no
- * price can be negative.
+ * The range after one handle of the two-handle slider moves to a stop.
+ *
+ * @remarks
+ * The far left of the low handle means "no minimum" and the far right of the
+ * high handle means "no maximum". These are read from the stop the user
+ * asked for, before any limit is applied, so a step left from the far right
+ * never turns into "no maximum".
+ *
+ * How the handles meet depends on how they're moved:
+ * - With the keyboard (no `anchor`), a handle stops at the other end's exact
+ *   amount. Arrow keys move one handle, and it shouldn't jump past the other.
+ * - With a pointer drag, `anchor` is the other end's value when the drag
+ *   started, and the dragged handle may pass it; min and max then swap, so
+ *   the range stays valid. This keeps two handles that sit on the same spot
+ *   draggable in both directions, even though only the top one can be
+ *   grabbed.
+ *
+ * @param handle - Which handle moved.
+ * @param stop - The stop it moved to (an index into {@link PRICE_STOPS}).
+ * @param range - The range before the move.
+ * @param anchor - During a pointer drag, the other end's value at the start.
+ * @returns The new range.
  */
-const PYTHON_FLOAT = new RegExp(`^\\+?(?:${DIGITS}(?:\\.(?:${DIGITS})?)?|\\.${DIGITS})(?:[eE][+-]?${DIGITS})?$`)
+export function moveHandle(handle: 'low' | 'high', stop: number, range: PriceRange, anchor?: string): PriceRange {
+  // The value at this stop, as a minimum or as a maximum.
+  const asMin = stop === 0 ? '' : String(PRICE_STOPS[stop])
+  const asMax = stop === LAST_STOP ? '' : String(PRICE_STOPS[stop])
+
+  // Pointer drag: the dragged end may cross the anchor, swapping the ends.
+  if (anchor !== undefined) {
+    const at = PRICE_STOPS[stop]
+    if (handle === 'low') {
+      const limit = amountOf(anchor) ?? Infinity
+      return at > limit ? { min: anchor, max: asMax } : { min: asMin, max: anchor }
+    }
+    const limit = amountOf(anchor) ?? -Infinity
+    return at < limit ? { min: asMin, max: anchor } : { min: anchor, max: asMax }
+  }
+
+  // Keyboard: stop at the other end's exact amount.
+  if (handle === 'low') {
+    if (asMin === '') return { min: '', max: range.max }
+    const cap = amountOf(range.max)
+    return { min: String(cap === undefined ? PRICE_STOPS[stop] : Math.min(PRICE_STOPS[stop], cap)), max: range.max }
+  }
+  if (asMax === '') return { min: range.min, max: '' }
+  const floor = amountOf(range.min)
+  return { min: range.min, max: String(floor === undefined ? PRICE_STOPS[stop] : Math.max(PRICE_STOPS[stop], floor)) }
+}

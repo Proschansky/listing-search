@@ -144,11 +144,6 @@ describe('PriceRangeSlider', () => {
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '400000' })
   })
 
-  it('puts the low handle on top past the middle, so it can still be dragged when both meet at the end', () => {
-    const { low } = setup('40000000', '')
-    expect(low.className).toMatch(/above/)
-  })
-
   it('never moves the maximum below a typed minimum that sits between stops', () => {
     // $470,000 rounds down to the $450,000 stop. Lowering the max handle must
     // stop at $470,000, or the next search would fail with min > max.
@@ -165,7 +160,8 @@ describe('PriceRangeSlider', () => {
     expect(high).toHaveAttribute('aria-valuetext', '$500,000.50')
     fireEvent.change(low, { target: { value: at(600_000) } })
     // Before the fix the decimal max counted as "no max", so this sent 600000.
-    expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000.50' })
+    // It stops at the exact max.
+    expect(onChange).toHaveBeenLastCalledWith({ min: '500000.5', max: '500000.50' })
     fireEvent.change(low, { target: { value: at(400_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '500000.50' })
   })
@@ -174,6 +170,25 @@ describe('PriceRangeSlider', () => {
     const { onChange, low } = setup('', 'abc')
     fireEvent.change(low, { target: { value: at(600_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '600000', max: 'abc' })
+  })
+
+  it('lets a dragged handle pass the other one, swapping the ends', () => {
+    const { onChange, high } = setup('500000', '500000')
+    fireEvent.pointerDown(high)
+    fireEvent.change(high, { target: { value: at(400_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '500000' })
+    // Once the pointer is up, keyboard rules apply again: no passing.
+    fireEvent.pointerUp(window)
+    fireEvent.change(high, { target: { value: at(400_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000' })
+  })
+
+  it('ends a drag on pointercancel too', () => {
+    const { onChange, low } = setup('500000', '500000')
+    fireEvent.pointerDown(low)
+    fireEvent.pointerCancel(window)
+    fireEvent.change(low, { target: { value: at(700_000) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000' })
   })
 
   it('keeps a typed maximum above its range when the low handle moves', () => {

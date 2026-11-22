@@ -82,9 +82,3 @@ $target: 24px;
 .dual .range {
   pointer-events: none;
 }
-
-// When the low handle is past the middle, put it on top, so it can still be
-// dragged after both handles meet at the right end.
-.above {
-  z-index: 1;
-}

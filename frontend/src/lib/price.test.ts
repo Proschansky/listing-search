@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, stopFor } from './price'
+import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, moveHandle, stopFor } from './price'
 
 describe('cleanPrice', () => {
   it.each([
@@ -80,8 +80,89 @@ describe('amountOf', () => {
     expect(amountOf(' 5 ')).toBe(5)
   })
 
+  it('reads digits from other scripts, as Python does', () => {
+    expect(amountOf('٥٠٠٠٠٠')).toBe(500_000) // Arabic-Indic
+    expect(amountOf('५००००')).toBe(50_000) // Devanagari
+    expect(amountOf('𝟓𝟎𝟎')).toBe(500) // mathematical bold digits, several runs of ten in a row
+  })
+
+  it('reads -0 as $0, checking the sign after conversion', () => {
+    expect(amountOf('-0')).toBe(0)
+    expect(Object.is(amountOf('-0'), 0)).toBe(true)
+    expect(amountOf('-0.0')).toBe(0)
+  })
+
   it('returns undefined for anything the API rejects or that is negative', () => {
     for (const raw of ['', ' ', '-5', 'abc', 'Infinity', 'nan', '0x10', '1__0', '_1', '1_', '1e', '.', '1e999'])
       expect(amountOf(raw), raw).toBeUndefined()
+  })
+})
+
+describe('moveHandle', () => {
+  const at = (price: number) => PRICE_STOPS.indexOf(price)
+
+  describe('keyboard (no anchor)', () => {
+    it('moves one end and keeps the other', () => {
+      expect(moveHandle('low', at(450_000), { min: '400000', max: '600000' })).toEqual({ min: '450000', max: '600000' })
+      expect(moveHandle('high', at(550_000), { min: '400000', max: '600000' })).toEqual({
+        min: '400000',
+        max: '550000',
+      })
+    })
+
+    it('clears an end moved all the way out', () => {
+      expect(moveHandle('low', 0, { min: '400000', max: '600000' })).toEqual({ min: '', max: '600000' })
+      expect(moveHandle('high', LAST_STOP, { min: '400000', max: '600000' })).toEqual({ min: '400000', max: '' })
+    })
+
+    it('stops at the exact amount at the other end', () => {
+      expect(moveHandle('high', at(450_000), { min: '470000', max: '500000' })).toEqual({
+        min: '470000',
+        max: '470000',
+      })
+      expect(moveHandle('low', at(600_000), { min: '', max: '500000.50' })).toEqual({
+        min: '500000.5',
+        max: '500000.50',
+      })
+    })
+
+    it('stops at the minimum instead of clearing the maximum near the top', () => {
+      // A $60M max sits on the last stop. One step left asks for $49M, below
+      // the $50M min: the max stops at $50M rather than becoming "no max".
+      expect(moveHandle('high', LAST_STOP - 1, { min: '50000000', max: '60000000' })).toEqual({
+        min: '50000000',
+        max: '50000000',
+      })
+    })
+
+    it('treats a blank or unreadable other end as no limit', () => {
+      expect(moveHandle('low', at(600_000), { min: '', max: '' })).toEqual({ min: '600000', max: '' })
+      expect(moveHandle('high', at(100_000), { min: 'abc', max: '' })).toEqual({ min: 'abc', max: '100000' })
+    })
+  })
+
+  describe('pointer drag (with an anchor)', () => {
+    const range = { min: '500000', max: '500000' }
+
+    it('pulls apart two handles on the same spot in either direction', () => {
+      // Only the top (high) handle can be grabbed. Dragging it left makes
+      // it the new minimum; dragging it right raises the maximum.
+      expect(moveHandle('high', at(400_000), range, '500000')).toEqual({ min: '400000', max: '500000' })
+      expect(moveHandle('high', at(600_000), range, '500000')).toEqual({ min: '500000', max: '600000' })
+    })
+
+    it('swaps the ends when the low handle passes the high one', () => {
+      expect(moveHandle('low', at(700_000), range, '500000')).toEqual({ min: '500000', max: '700000' })
+      expect(moveHandle('low', LAST_STOP, range, '500000')).toEqual({ min: '500000', max: '' })
+    })
+
+    it('swaps the ends when the high handle passes the low one', () => {
+      expect(moveHandle('high', 0, range, '500000')).toEqual({ min: '', max: '500000' })
+    })
+
+    it('treats a blank anchor as the open end, which can not be passed', () => {
+      expect(moveHandle('low', LAST_STOP, { min: '', max: '' }, '')).toEqual({ min: '50000000', max: '' })
+      expect(moveHandle('high', 0, { min: '', max: '' }, '')).toEqual({ min: '', max: '0' })
+    })
   })
 })

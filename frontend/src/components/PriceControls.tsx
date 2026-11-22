@@ -18,9 +18,9 @@
  * @module
  */
 
-import { useState, type CSSProperties, type InputHTMLAttributes } from 'react'
+import { useRef, useState, type CSSProperties, type InputHTMLAttributes } from 'react'
 import { cx } from '../lib/cx'
-import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, stopFor } from '../lib/price'
+import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, moveHandle, stopFor } from '../lib/price'
 import styles from './PriceControls.module.scss'
 
 /** Props for {@link PriceInput}. */
@@ -160,13 +160,8 @@ interface PriceRangeSliderProps {
  * It's two native range inputs laid over one track, so each handle keeps the
  * browser's keyboard support and is its own labelled control. The left handle
  * all the way left means "no minimum"; the right handle all the way right
- * means "no maximum". A handle stops when it reaches the other one.
- *
- * Handles sit on the slider's stops, but the boxes can hold any amount, so a
- * handle's position can be rounded down from the real value. Each handle is
- * therefore also kept from crossing the other end's exact amount: with a
- * typed minimum of $470,000, the maximum handle can't go below $470,000, even
- * though the stop under it is $450,000.
+ * means "no maximum". {@link moveHandle} decides the new range: keyboard
+ * steps stop at the other handle, while a mouse or touch drag may pass it.
  *
  * @param props - See {@link PriceRangeSliderProps}.
  * @returns The slider.
@@ -174,31 +169,40 @@ interface PriceRangeSliderProps {
 export function PriceRangeSlider({ min, max, onChange }: PriceRangeSliderProps) {
   const lo = stopFor(min, 0)
   const hi = stopFor(max, LAST_STOP)
-  const minAmount = amountOf(min)
-  const maxAmount = amountOf(max)
+  // The other end's value when a pointer drag started (see moveHandle).
+  const drag = useRef<string | undefined>(undefined)
+
+  /**
+   * Remember the other end while a pointer is down on a handle.
+   *
+   * @param other - The other end's current value.
+   */
+  const startDrag = (other: string) => {
+    drag.current = other
+    const end = () => {
+      drag.current = undefined
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+    }
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
   return (
     <div className={cx(styles.track, styles.dual)} style={fill(lo, hi)}>
       <input
         {...rangeProps(lo, min, 'No min')}
-        className={cx(styles.range, lo > LAST_STOP / 2 && styles.above)}
+        className={styles.range}
         aria-label="Lowest price"
-        onChange={(e) => {
-          const i = Math.min(Number(e.target.value), hi)
-          if (i === 0) return onChange({ min: '', max })
-          const price = maxAmount === undefined ? PRICE_STOPS[i] : Math.min(PRICE_STOPS[i], maxAmount)
-          onChange({ min: String(price), max })
-        }}
+        onPointerDown={() => startDrag(max)}
+        onChange={(e) => onChange(moveHandle('low', Number(e.target.value), { min, max }, drag.current))}
       />
       <input
         {...rangeProps(hi, max, 'No max')}
         className={styles.range}
         aria-label="Highest price"
-        onChange={(e) => {
-          const i = Math.max(Number(e.target.value), lo)
-          if (i === LAST_STOP) return onChange({ min, max: '' })
-          const price = minAmount === undefined ? PRICE_STOPS[i] : Math.max(PRICE_STOPS[i], minAmount)
-          onChange({ min, max: String(price) })
-        }}
+        onPointerDown={() => startDrag(min)}
+        onChange={(e) => onChange(moveHandle('high', Number(e.target.value), { min, max }, drag.current))}
       />
     </div>
   )
