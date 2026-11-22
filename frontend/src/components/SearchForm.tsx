@@ -8,6 +8,7 @@ import type { FormEvent } from 'react'
 import type { FieldError, SearchQuery, Status } from '../api'
 import { cx } from '../lib/cx'
 import ui from '../styles/ui.module.scss'
+import { PriceInput, PriceRangeSlider, PriceSlider } from './PriceControls'
 import styles from './SearchForm.module.scss'
 
 /** Props for {@link SearchForm}. */
@@ -40,7 +41,10 @@ interface Props {
 const STATUSES: Status[] = ['active', 'pending', 'sold']
 
 /** Fields rendered as plain text inputs by the `field` helper. */
-type TextField = 'minPrice' | 'maxPrice' | 'minBedrooms' | 'city' | 'keyword' | 'targetBudget'
+type TextField = 'minBedrooms' | 'city' | 'keyword'
+
+/** Fields that hold a dollar amount, edited with {@link PriceInput}. */
+type PriceField = 'minPrice' | 'maxPrice' | 'targetBudget'
 
 /**
  * Inputs for every filter, the target budget, status and page size.
@@ -157,19 +161,71 @@ export function SearchForm({
     )
   }
 
+  /**
+   * Render a labelled dollar-amount box with its error message, if any.
+   *
+   * @remarks
+   * Same wiring as {@link field}, with {@link PriceInput} in place of a plain
+   * input so the amount shows commas.
+   *
+   * @param name - Which query field the box edits.
+   * @param label - Visible label text.
+   * @param placeholder - Hint shown when the box is empty.
+   * @returns The label, input and optional error message.
+   */
+  const priceField = (name: PriceField, label: string, placeholder?: string) => {
+    const error = errorFor(name)
+    return (
+      <label className={cx(styles.field, error && styles.invalid)}>
+        <span>{label}</span>
+        <PriceInput
+          name={name}
+          value={value[name]}
+          onChange={(v) => onChange({ ...value, [name]: v })}
+          placeholder={placeholder}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${name}-error` : undefined}
+        />
+        {error && (
+          <small id={`${name}-error`} className={styles.fieldError}>
+            {error}
+          </small>
+        )}
+      </label>
+    )
+  }
   return (
     <form className={cx(ui.card, styles.form)} onSubmit={handleSubmit} aria-label="Search listings" noValidate>
       {/* Main filters. type="number" brings up a numeric keypad on phones;
           the values are still sent as strings and validated by the API. */}
       <div className={styles.grid}>
-        {field('minPrice', 'Min price ($)', { type: 'number', min: 0, inputMode: 'numeric' })}
-        {field('maxPrice', 'Max price ($)', { type: 'number', min: 0, inputMode: 'numeric' })}
+        {/* Price range: two boxes for exact amounts and one two-handle
+            slider under them for rough ones. */}
+        <div className={styles.priceGroup}>
+          {priceField('minPrice', 'Min price ($)', 'No min')}
+          {priceField('maxPrice', 'Max price ($)', 'No max')}
+          <div className={styles.slider}>
+            <PriceRangeSlider
+              min={value.minPrice}
+              max={value.maxPrice}
+              onChange={({ min, max }) => onChange({ ...value, minPrice: min, maxPrice: max })}
+            />
+          </div>
+        </div>
         {field('minBedrooms', 'Min bedrooms', { type: 'number', min: 0, step: 1 })}
         {/* list="city-options" connects this input to the <datalist> below,
             giving type-ahead suggestions while still allowing any text. */}
         {field('city', 'City', { list: 'city-options', placeholder: 'Any city' })}
         {field('keyword', 'Keywords', { placeholder: 'e.g. pool, garage' })}
-        {field('targetBudget', 'Target budget ($)', { type: 'number', min: 0, placeholder: 'Ranks by fit' })}
+        <div className={styles.priceField}>
+          {priceField('targetBudget', 'Target budget ($)', 'Ranks by fit')}
+          <PriceSlider
+            label="Budget"
+            blankText="No target"
+            value={value.targetBudget}
+            onChange={(v) => onChange({ ...value, targetBudget: v })}
+          />
+        </div>
       </div>
       <datalist id="city-options">
         {cities.map((c) => (

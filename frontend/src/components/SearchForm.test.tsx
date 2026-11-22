@@ -8,11 +8,12 @@
  * @module
  */
 
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState, type ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EMPTY_QUERY, type SearchQuery } from '../api'
+import { PRICE_STOPS } from '../lib/price'
 import { COMPONENT_ONLY_SKIP, expectNoA11yViolations } from '../test/axe'
 import { SearchForm } from './SearchForm'
 
@@ -65,6 +66,31 @@ describe('SearchForm', () => {
     const { onChange } = renderForm()
     await userEvent.type(screen.getByLabelText(label), text)
     expect(lastChange(onChange)[field]).toBe(text)
+  })
+
+  it('takes prices with commas and a dollar sign, and shows commas afterwards', async () => {
+    const { onChange } = renderForm()
+    const box = screen.getByLabelText(/Max price/)
+    await userEvent.type(box, '$1,250,000')
+    expect(lastChange(onChange).maxPrice).toBe('1250000')
+    await userEvent.tab()
+    expect(box).toHaveValue('1,250,000')
+  })
+
+  it('sets the price range and the target budget from the sliders', () => {
+    const { onChange } = renderForm({ value: { ...EMPTY_QUERY, city: 'Vienna' } })
+    const at = (price: number) => String(PRICE_STOPS.indexOf(price))
+    fireEvent.change(screen.getByRole('slider', { name: 'Lowest price' }), { target: { value: at(400_000) } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Highest price' }), { target: { value: at(2_000_000) } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Budget' }), { target: { value: at(750_000) } })
+    expect(lastChange(onChange)).toMatchObject({
+      city: 'Vienna',
+      minPrice: '400000',
+      maxPrice: '2000000',
+      targetBudget: '750000',
+    })
+    // The boxes follow the sliders.
+    expect(screen.getByLabelText(/Min price/)).toHaveValue('400,000')
   })
 
   it('keeps other fields when one changes', async () => {

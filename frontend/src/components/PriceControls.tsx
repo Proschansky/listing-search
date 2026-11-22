@@ -1,0 +1,190 @@
+/**
+ * Price inputs for the search form: a text box that shows commas, a slider
+ * for one price (the target budget) and a two-handle slider for a range
+ * (min and max price).
+ *
+ * @remarks
+ * Prices run to six and seven figures, so the browser's number input, with
+ * its arrows that step by $1, is the wrong tool. The text box takes typed or
+ * pasted amounts ("650,000", "$650000"). The sliders are for rough choices
+ * and cover $0 to $50,000,000 in steps that grow with the price (see
+ * `PRICE_STOPS` in `lib/price.ts`). Both edit the same query string, so they
+ * always agree.
+ *
+ * None of this validates. A value the box can't read as a whole number (say
+ * "-5" or "abc") is passed to the API unchanged, and the API's error shows
+ * next to the field, as with every other input.
+ *
+ * @module
+ */
+
+import { useState, type CSSProperties, type InputHTMLAttributes } from 'react'
+import { cx } from '../lib/cx'
+import { LAST_STOP, PRICE_STOPS, WHOLE_NUMBER, cleanPrice, formatPrice, stopFor } from '../lib/price'
+import styles from './PriceControls.module.scss'
+
+/** Props for {@link PriceInput}. */
+type PriceInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
+  /** The query value, digits only when valid (`"650000"`). */
+  value: string
+  /** Called with the cleaned text on every edit. */
+  onChange: (value: string) => void
+}
+
+/**
+ * A text box for a dollar amount.
+ *
+ * @remarks
+ * It shows commas only when it isn't focused. Adding them while someone types
+ * would move the cursor around under them.
+ *
+ * @param props - See {@link PriceInputProps}; other props go to the `<input>`.
+ * @returns The input.
+ */
+export function PriceInput({ value, onChange, onFocus, onBlur, ...rest }: PriceInputProps) {
+  const [editing, setEditing] = useState(false)
+  return (
+    <input
+      {...rest}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      value={editing ? value : formatPrice(value)}
+      onChange={(e) => onChange(cleanPrice(e.target.value))}
+      onFocus={(e) => {
+        setEditing(true)
+        onFocus?.(e)
+      }}
+      onBlur={(e) => {
+        setEditing(false)
+        onBlur?.(e)
+      }}
+    />
+  )
+}
+
+/**
+ * How a screen reader reads a slider's position.
+ *
+ * @param raw - The query value.
+ * @param blank - What to say when the value is blank, such as "No min".
+ * @returns For example `"$650,000"`.
+ */
+function valueText(raw: string, blank: string): string {
+  return WHOLE_NUMBER.test(raw) ? `$${formatPrice(raw)}` : blank
+}
+
+/** Props for {@link PriceSlider}. */
+interface PriceSliderProps {
+  /** Accessible name. Keep it different from the text box's label. */
+  label: string
+  /** The query value. */
+  value: string
+  /** Called with the new value; `""` at the far left (no value). */
+  onChange: (value: string) => void
+  /** Read out when the value is blank. */
+  blankText: string
+}
+
+/**
+ * The attributes every price slider shares. The input's value is a stop
+ * index, not dollars; `aria-valuetext` tells screen readers the amount.
+ *
+ * @param stop - The current stop index.
+ * @param raw - The query value, read out as dollars.
+ * @param blank - Read out when the value is blank.
+ * @returns Props for a range `<input>`.
+ */
+function rangeProps(stop: number, raw: string, blank: string) {
+  return {
+    type: 'range',
+    min: 0,
+    max: LAST_STOP,
+    step: 1,
+    value: stop,
+    'aria-valuetext': valueText(raw, blank),
+  } as const
+}
+
+/**
+ * A one-handle price slider. All the way left means "not set".
+ *
+ * @param props - See {@link PriceSliderProps}.
+ * @returns The slider.
+ */
+export function PriceSlider({ label, value, onChange, blankText }: PriceSliderProps) {
+  const at = stopFor(value, 0)
+  return (
+    <div className={styles.track} style={fill(0, at)}>
+      <input
+        {...rangeProps(at, value, blankText)}
+        className={styles.range}
+        aria-label={label}
+        onChange={(e) => {
+          const i = Number(e.target.value)
+          onChange(i === 0 ? '' : String(PRICE_STOPS[i]))
+        }}
+      />
+    </div>
+  )
+}
+
+/** Props for {@link PriceRangeSlider}. */
+interface PriceRangeSliderProps {
+  /** The minimum price query value. */
+  min: string
+  /** The maximum price query value. */
+  max: string
+  /** Called with both values whenever either handle moves. */
+  onChange: (range: { min: string; max: string }) => void
+}
+
+/**
+ * A two-handle slider for a price range.
+ *
+ * @remarks
+ * It's two native range inputs laid over one track, so each handle keeps the
+ * browser's keyboard support and is its own labelled control. The left handle
+ * all the way left means "no minimum"; the right handle all the way right
+ * means "no maximum". A handle stops when it reaches the other one.
+ *
+ * @param props - See {@link PriceRangeSliderProps}.
+ * @returns The slider.
+ */
+export function PriceRangeSlider({ min, max, onChange }: PriceRangeSliderProps) {
+  const lo = stopFor(min, 0)
+  const hi = stopFor(max, LAST_STOP)
+  return (
+    <div className={cx(styles.track, styles.dual)} style={fill(lo, hi)}>
+      <input
+        {...rangeProps(lo, min, 'No min')}
+        className={cx(styles.range, lo > LAST_STOP / 2 && styles.above)}
+        aria-label="Lowest price"
+        onChange={(e) => {
+          const i = Math.min(Number(e.target.value), hi)
+          onChange({ min: i === 0 ? '' : String(PRICE_STOPS[i]), max })
+        }}
+      />
+      <input
+        {...rangeProps(hi, max, 'No max')}
+        className={styles.range}
+        aria-label="Highest price"
+        onChange={(e) => {
+          const i = Math.max(Number(e.target.value), lo)
+          onChange({ min, max: i === LAST_STOP ? '' : String(PRICE_STOPS[i]) })
+        }}
+      />
+    </div>
+  )
+}
+
+/**
+ * CSS variables that colour the track between two stops.
+ *
+ * @param from - Stop where the filled part starts.
+ * @param to - Stop where it ends.
+ * @returns Inline style with `--from` and `--to` as percentages.
+ */
+function fill(from: number, to: number): CSSProperties {
+  return { '--from': `${(from / LAST_STOP) * 100}%`, '--to': `${(to / LAST_STOP) * 100}%` } as CSSProperties
+}

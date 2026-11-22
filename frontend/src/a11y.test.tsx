@@ -200,7 +200,17 @@ describe('accessibility (beyond axe)', () => {
       expect(document.activeElement).toBe(screen.getByRole('button', { name }))
     }
     // ...then the search form, top to bottom.
-    const order = [/Min price/, /Max price/, /Min bedrooms/, /City/, /Keywords/, /Target budget/]
+    const order = [
+      /Min price/,
+      /Max price/,
+      'Lowest price',
+      'Highest price',
+      /Min bedrooms/,
+      /City/,
+      /Keywords/,
+      /Target budget/,
+      'Budget',
+    ]
     for (const label of order) {
       await userEvent.tab()
       expect(document.activeElement).toBe(screen.getByLabelText(label))

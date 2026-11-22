@@ -129,6 +129,7 @@ Every API response sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DEN
 | Feature | Where | Notes |
 |---|---|---|
 | Search form | `SearchForm.tsx` | Every filter, status toggles, and an Advanced section for page size. `asOf` has no input; it can only be set in the URL. API errors appear next to their fields. |
+| Price inputs | `PriceControls.tsx`, `lib/price.ts` | Text boxes that take typed or pasted amounts and show commas, with sliders under them: one two-handle slider for min and max price, one for the target budget. The sliders run from $0 to $50,000,000 in steps that grow with the price ($25,000 below $1M, up to $1,000,000 above $25M). All the way right means no maximum; any amount can be typed, including above $50M. |
 | Search as you type | `App.tsx`, `useDebouncedCallback.ts` | Optional. Sends one search after typing pauses for 400 ms, not one per key press. |
 | Results | `ResultsTable.tsx` | Ranked cards with price, details, status badge, score bar and breakdown, and source feeds. Clicking a card opens the details. |
 | Sort | `SortControl.tsx` | Applies immediately, from page 1 |
@@ -255,11 +256,11 @@ backend/
   openapi.json · Dockerfile · pyproject.toml · requirements.txt · requirements-dev.txt
 frontend/
   src/        App.tsx (+ App.module.scss) · api.ts · main.tsx · a11y.test.tsx
-    components/  SearchForm · ResultsTable · ResultsSkeleton · PaginationControls · SortControl
+    components/  SearchForm · PriceControls · ResultsTable · ResultsSkeleton · PaginationControls · SortControl
                  SegmentedControl · StatusBadge · MapView · ListingDrawer · SavedSearches
                  ErrorBoundary   (each with its .module.scss and .test.tsx)
     hooks/       useDebouncedCallback · useLocalStorage · useTheme
-    lib/         format · savedSearches · cx
+    lib/         format · price · savedSearches · cx
     styles/      _tokens · _mixins · global · ui.module   (see Styling)
     test/        fixtures · axe helper
   e2e/        Playwright specs · fixtures (including the PR evidence recorder)

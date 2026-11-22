@@ -44,6 +44,26 @@ test.describe('search', () => {
     await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
   })
 
+  test('sets prices by typing with commas or with the slider', async ({ page, evidence }) => {
+    await openApp(page)
+    const maxBox = page.getByLabel('Max price ($)')
+    await maxBox.fill('$500,000')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect.poll(() => urlParams(page).get('maxPrice')).toBe('500000')
+    await expect(maxBox).toHaveValue('500,000')
+
+    // One arrow press moves the handle down one $25,000 step.
+    const handle = page.getByRole('slider', { name: 'Highest price' })
+    await expect(handle).toHaveAttribute('aria-valuetext', '$500,000')
+    await handle.focus()
+    await page.keyboard.press('ArrowLeft')
+    await expect(maxBox).toHaveValue('475,000')
+    await expect(handle).toHaveAttribute('aria-valuetext', '$475,000')
+    await evidence.capture('Max price set with the slider')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect.poll(() => urlParams(page).get('maxPrice')).toBe('475000')
+  })
+
   test('explains an unknown city with a warning, not an error', async ({ page }) => {
     await openApp(page, '?city=Atlantis')
     await expect(page.getByText(/No listings in city 'Atlantis'/)).toBeVisible()
