@@ -83,6 +83,11 @@ describe('PriceSlider', () => {
     expect(onChange).toHaveBeenLastCalledWith('')
   })
 
+  it('reads out a decimal amount instead of calling it unset', () => {
+    render(<PriceSlider label="Budget" blankText="No target" value="500000.50" onChange={() => {}} />)
+    expect(screen.getByRole('slider', { name: 'Budget' })).toHaveAttribute('aria-valuetext', '$500,000.50')
+  })
+
   it('says when no amount is set', () => {
     render(<PriceSlider label="Budget" blankText="No target" value="" onChange={() => {}} />)
     expect(screen.getByRole('slider', { name: 'Budget' })).toHaveAttribute('aria-valuetext', 'No target')
@@ -157,6 +162,7 @@ describe('PriceRangeSlider', () => {
   it('never moves the minimum above a decimal maximum', () => {
     const { onChange, low, high } = setup('', '500000.50')
     expect(high).toHaveValue(at(500_000))
+    expect(high).toHaveAttribute('aria-valuetext', '$500,000.50')
     fireEvent.change(low, { target: { value: at(600_000) } })
     // Before the fix the decimal max counted as "no max", so this sent 600000.
     expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000.50' })

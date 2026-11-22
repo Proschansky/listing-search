@@ -20,7 +20,7 @@
 
 import { useState, type CSSProperties, type InputHTMLAttributes } from 'react'
 import { cx } from '../lib/cx'
-import { LAST_STOP, PRICE_STOPS, WHOLE_NUMBER, amountOf, cleanPrice, formatPrice, stopFor } from '../lib/price'
+import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, stopFor } from '../lib/price'
 import styles from './PriceControls.module.scss'
 
 /** Props for {@link PriceInput}. */
@@ -63,15 +63,29 @@ export function PriceInput({ value, onChange, onFocus, onBlur, ...rest }: PriceI
   )
 }
 
+/** Dollars for screen readers: "$650,000", or "$500,000.50" with cents. */
+const spoken = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  trailingZeroDisplay: 'stripIfInteger',
+})
+
 /**
  * How a screen reader reads a slider's position.
+ *
+ * @remarks
+ * Any amount the API accepts is read out, decimals included. Saying "No max"
+ * for $500,000.50 would tell a screen-reader user a filter is off when it's on.
  *
  * @param raw - The query value.
  * @param blank - What to say when the value is blank, such as "No min".
  * @returns For example `"$650,000"`.
  */
 function valueText(raw: string, blank: string): string {
-  return WHOLE_NUMBER.test(raw) ? `$${formatPrice(raw)}` : blank
+  const amount = amountOf(raw)
+  return amount === undefined ? blank : spoken.format(amount)
 }
 
 /** Props for {@link PriceSlider}. */
