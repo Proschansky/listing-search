@@ -184,7 +184,21 @@ ${rows || '<tr><td colspan="6" class="muted">No API requests were made in this t
  * @property {{ label: string, file: string }[]} screenshots - In capture order.
  * @property {string} networkImage - The rendered network panel, relative to `dir`.
  * @property {NetworkEntry[]} network
+ * @property {boolean} [mapTilesBlocked] - The test tried to load map tiles, which the e2e setup blocks.
  */
+
+/**
+ * Shown above the evidence when any test's map tiles were blocked, so
+ * reviewers know a map of markers on a blank background is expected.
+ * Uses GitHub's NOTE callout syntax.
+ */
+export const MAP_TILES_NOTE = [
+  '> [!NOTE]',
+  "> Map screenshots show markers on a blank background because the tests block OpenStreetMap's map tiles on purpose. " +
+    'Tests should not fail when a third-party server is slow or down, or when CI has no internet. ' +
+    "Blocked tiles also keep screenshots the same from run to run, and OpenStreetMap's usage policy discourages automated traffic. " +
+    'The map loads normally in the running app.',
+].join('\n')
 
 const STATUS_ICON = { passed: '✅', failed: '❌', timedOut: '⏱️', skipped: '⏭️', interrupted: '⚠️' }
 
@@ -208,6 +222,8 @@ export function buildEvidenceMarkdown({ tests, imageUrl, reason, commit }) {
     '',
   ]
   if (!tests.length) lines.push('_No tests ran._', '')
+  // Above the first test's accordion, only when a test actually hit the map.
+  if (tests.some((t) => t.mapTilesBlocked)) lines.push(MAP_TILES_NOTE, '')
   for (const t of tests) {
     const icon = STATUS_ICON[t.status] ?? '•'
     lines.push(

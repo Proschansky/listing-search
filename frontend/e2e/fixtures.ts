@@ -33,6 +33,9 @@ export interface Evidence {
 /** `true` for the app's own API calls (not the page, assets or map tiles). */
 const isApi = (url: string) => new URL(url).pathname.startsWith('/api/')
 
+/** OpenStreetMap tile requests, which every test blocks. */
+const TILE_URL = /tile\.openstreetmap\.org/
+
 /**
  * Record one test's evidence into `<root>/<test slug>/`.
  *
@@ -76,6 +79,13 @@ function recordEvidence(page: Page, testInfo: TestInfo, root: string) {
   page.on('requestfailed', (req) => {
     if (isApi(req.url())) pending.push(record(req, null))
   })
+  // Map tiles are blocked for every test (see `consoleErrors` above). Note
+  // whether this test tried to load any, so the PR evidence can explain why
+  // its map screenshots show markers on a blank background.
+  let mapTilesBlocked = false
+  page.on('requestfailed', (req) => {
+    if (TILE_URL.test(req.url())) mapTilesBlocked = true
+  })
 
   const evidence: Evidence = {
     async capture(label) {
@@ -100,7 +110,16 @@ function recordEvidence(page: Page, testInfo: TestInfo, root: string) {
     writeFileSync(
       join(dir, 'evidence.json'),
       JSON.stringify(
-        { title, file, status: testInfo.status, dir: basename(dir), screenshots, networkImage: 'network.png', network },
+        {
+          title,
+          file,
+          status: testInfo.status,
+          dir: basename(dir),
+          screenshots,
+          networkImage: 'network.png',
+          network,
+          mapTilesBlocked,
+        },
         null,
         2,
       ),
@@ -126,7 +145,7 @@ export const test = base.extend<{ consoleErrors: string[]; evidence: Evidence }>
   consoleErrors: [
     async ({ page }, use) => {
       const errors: string[] = []
-      await page.route(/tile\.openstreetmap\.org/, (route) => route.abort())
+      await page.route(TILE_URL, (route) => route.abort())
       page.on('console', (msg) => {
         // Aborted tile requests show up as resource errors; they're expected.
         if (msg.type() === 'error' && !/Failed to load resource/.test(msg.text())) errors.push(msg.text())

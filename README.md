@@ -83,7 +83,7 @@ Checks run automatically at three points:
 
 ### Screenshots in pull requests
 
-When a pull request changes an end-to-end test, one command (`npm run pr:evidence:publish`) reruns those tests and adds what they saw to the pull request description. That's a screenshot at each step and a browser-style network panel listing every API call, with its status, timing and response. Reviewers can see what a change does without running it themselves. If no end-to-end test changed, nothing is added.
+When a pull request changes an end-to-end test, one command (`npm run pr:evidence:publish`) reruns those tests and adds what they saw to the pull request description. That's a screenshot at each step and a browser-style network panel listing every API call, with its status, timing and response. Reviewers can see what a change does without running it themselves. If no end-to-end test changed, nothing is added. Map screenshots show markers without the street map behind them, because the tests block map tiles; a note in the pull request explains this when it applies.
 
 The screenshots are stored on a separate branch in the repository called `pr-evidence`. GitHub can only show an image in a pull request description if the image has a web address, and GitHub has no way to upload an image to a pull request from the command line. A branch gives each image a stable address inside the same repository. Keeping it separate means the images never appear in the code history or in a pull request's list of changed files.
 
