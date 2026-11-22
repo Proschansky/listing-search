@@ -8,9 +8,9 @@ How the code is organized, how to run and configure it, and how its quality is c
 
 ```bash
 make setup     # backend virtual environment and dev tools, frontend packages, git hooks
-make check     # every linter and test, with coverage thresholds
+make check     # every linter and test, with coverage thresholds (no e2e)
 make e2e       # Playwright end-to-end tests (starts its own servers)
-make ci        # vulnerability check + check + e2e: what the pre-push hook runs
+make ci        # vulnerability check + check + e2e: the full gate the pre-push hook runs
 make audit     # the dependency vulnerability check on its own
 make openapi   # regenerate backend/openapi.json after an API change
 ```
@@ -183,11 +183,17 @@ On macOS 12, Playwright's own Chromium isn't available, so locally the tests dri
 
 | Check | Runs on | What it checks |
 |---|---|---|
-| Pre-commit hook | every `git commit` | Linting, formatting, type checks and tests, with coverage thresholds, for the half of the code you changed |
-| Pre-push hook | every `git push` | `make ci`: the dependency vulnerability check, everything above, and the Playwright tests |
+| Pre-commit hook | every `git commit` | Linting, formatting and type checks for the half of the code you changed. Seconds, so it never slows a commit down. |
+| Pre-push hook | every `git push` | `make ci`: the dependency vulnerability check, all linting, every test with coverage thresholds, and the Playwright tests. Runs once per version of the code (see below). |
 | CI (`.github/workflows/ci.yml`) | every push and pull request | The same checks in parallel jobs, the end-to-end tests, a production build and both Docker images. `backend`, `frontend` and `e2e` must pass before anything merges into `main`. |
 | Pull request template (`.github/pull_request_template.md`) | every pull request | A short summary, a table of files changed, checklists for the UI, backend, coverage and a manual test of the running app, an optional diagram, and QA steps for the reviewer |
 | PR evidence (`npm run pr:evidence`) | opening or updating a pull request | Screenshots and network captures of every changed end-to-end test, added to the pull request description |
+
+Each check runs once. Tests used to run at both commit and push, so a commit followed by a push tested the same code twice; now they run only at push. The pre-push hook also remembers what it has checked. After the gate passes, it records the commit's tree hash, git's fingerprint of the exact files, which doesn't change when only a commit message, author or date does. Pushing files whose fingerprint is already recorded skips lint, tests and e2e. That happens when you re-push after a dropped connection, push the same branch to a second place, or force-push after rewording commit messages. Only the checked-out commit, with no uncommitted or untracked files, gets recorded, because the gate tests the files on disk. The records are in `.git/checked-trees` in your clone and are never pushed; delete that file to force a full run. Linting can still run at both commit and push, since the commit only lints the half you changed, but it takes seconds.
+
+Changes that only touch documentation skip the checks entirely: any Markdown file, or anything under `docs/`. Pre-commit skips linting when every staged file is documentation. Pre-push compares each branch with what's already on GitHub (for a new branch, with where it left `origin/main`) and skips lint, tests and e2e when every changed file is documentation. Deleted files and renames count by their original paths, so deleting code or moving it into `docs/` is never treated as documentation. If the branch's current commit on GitHub hasn't been fetched, the hook can't see what the push replaces, so it runs everything. CI still runs on the pull request.
+
+The dependency vulnerability check is the exception to all of this: it runs on every push that sends code, including already-checked and documentation-only ones. It reads live advisory data, so code that passed yesterday can have a fixable vulnerability published today, and neither its result nor an override is ever reused.
 
 Install the hooks once per clone with `make hooks` (or `make setup`). They're stored in `.githooks/` and switched on with `git config core.hooksPath .githooks`.
 
