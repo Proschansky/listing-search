@@ -62,6 +62,10 @@
   display: grid;
   gap: 0.9rem;
   align-content: start;
+  // Size every row to its content. Otherwise, once the body overflows, the
+  // grid shrinks the scrollable children (the photo row, the sources table)
+  // to almost nothing to make room, instead of letting the body scroll.
+  grid-auto-rows: max-content;
   padding: 1.25rem;
   overflow-y: auto;
 
@@ -130,7 +134,6 @@
 // Photo row: one photo fills most of the width so the next one peeks in,
 // which tells people the row scrolls. Snap points keep a photo aligned.
 .photos {
-  margin-block: 4px 18px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   border-radius: var(--radius-sm);

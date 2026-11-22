@@ -195,6 +195,8 @@ export function ListingDrawer({ listingKey, initial, context, onClose }: Props) 
 
         {listing && (
           <div className={styles.drawerBody}>
+            {/* Photos first, as on most listing sites; listings without any skip straight to the price. */}
+            {listing.photos.length > 0 && <PhotoStrip photos={listing.photos} address={listing.address} />}
             <div className={styles.drawerPrice}>
               <span className={cx(ui.price, styles.headlinePrice)}>{usd.format(listing.price)}</span>
               <StatusBadge status={listing.status} />
@@ -231,8 +233,6 @@ export function ListingDrawer({ listingKey, initial, context, onClose }: Props) 
             </dl>
 
             {listing.description && <p className={styles.description}>{listing.description}</p>}
-
-            {listing.photos.length > 0 && <PhotoStrip photos={listing.photos} address={listing.address} />}
 
             <h3>Why it ranked here</h3>
             <table className={styles.miniTable}>
