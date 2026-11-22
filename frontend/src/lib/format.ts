@@ -9,7 +9,7 @@
  */
 
 /**
- * Shared currency formatter, e.g. `450000` becomes `"$450,000"`.
+ * Shared currency formatter: `450000` becomes `"$450,000"`.
  *
  * @remarks
  * Created once at module level because constructing an `Intl` formatter is
@@ -18,7 +18,7 @@
 export const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
 /**
- * Format an ISO `YYYY-MM-DD` date as e.g. `"Mar 4, 2026"`.
+ * Format an ISO `YYYY-MM-DD` date as, for example, `"Mar 4, 2026"`.
  *
  * @remarks
  * Parsed as UTC and formatted in UTC, so the day never shifts with the

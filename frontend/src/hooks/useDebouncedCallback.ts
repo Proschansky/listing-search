@@ -19,7 +19,7 @@ import { useCallback, useEffect, useRef } from 'react'
  *   caller never sees stale state.
  * - A pending call is cancelled when the component unmounts, so nothing
  *   fires against a page that's gone.
- * - `cancel()` drops a pending call (e.g. when the user submits by hand).
+ * - `cancel()` drops a pending call, for example when the user submits by hand.
  *
  * Firing from a timer callback (rather than syncing a debounced *value* into
  * state from an effect) follows React's guidance: state changes come from

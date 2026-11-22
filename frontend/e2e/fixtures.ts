@@ -6,8 +6,7 @@
  * - blocks OpenStreetMap tile requests, so the map view works offline and
  *   tests never depend on (or load) a third-party server;
  * - fails if the page logs a console error or throws an uncaught exception,
- *   which catches broken UI that still happens to pass its assertions.
- *
+ *   which catches broken UI that still happens to pass its assertions;
  * - records PR evidence when `PW_EVIDENCE_DIR` is set (by `npm run
  *   pr:evidence`): screenshots of the UI, every `/api` request and response,
  *   and a DevTools-style network panel built from them. Tests can add named
@@ -168,7 +167,7 @@ export const cards = (page: Page) => page.getByRole('list', { name: 'Search resu
  * Open the app (optionally with a query string) and wait for results.
  *
  * @param page - The Playwright page.
- * @param query - e.g. `"?city=Reston"`.
+ * @param query - Query string to open with, for example `"?city=Reston"`.
  */
 export async function openApp(page: Page, query = '') {
   await page.goto(`/${query}`)

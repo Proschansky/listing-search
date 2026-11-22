@@ -21,7 +21,7 @@ export const MAX_BODY_CHARS = 2000
 /**
  * A short, file-system- and URL-safe name.
  *
- * @param {string} text - Any text, e.g. a test title.
+ * @param {string} text - Any text, such as a test title.
  * @returns {string} Lowercase words joined by dashes, at most 80 characters.
  */
 export function slug(text) {
@@ -39,12 +39,12 @@ export function slug(text) {
  *
  * @remarks
  * - Changed spec files (`frontend/e2e/*.spec.ts`) -> run every test in those
- *   files: the evidence shows the flows the PR actually adds or changes.
+ *   files: the evidence shows the flows the PR adds or changes.
  * - No spec file changed -> run nothing (`skip`). Evidence of unchanged flows
  *   would only make the PR longer to review.
  * - `all` -> every spec, on request.
  *
- * @param {string[]} changedFiles - Repo-relative paths, e.g. `frontend/e2e/search.spec.ts`.
+ * @param {string[]} changedFiles - Repo-relative paths, for example `frontend/e2e/search.spec.ts`.
  * @param {{ all?: boolean }} [options]
  * @returns {{ specs: string[], skip: boolean, reason: string }} Spec paths
  *   relative to `frontend/` (empty = all when not skipping), whether to skip
@@ -89,18 +89,18 @@ export function escapeHtml(value) {
 
 /**
  * @typedef {object} NetworkEntry One API request seen during a test.
- * @property {string} method - e.g. `GET`.
- * @property {string} url - Path and query, e.g. `/api/v1/listings?city=Reston`.
+ * @property {string} method - HTTP method, for example `GET`.
+ * @property {string} url - Path and query, for example `/api/v1/listings?city=Reston`.
  * @property {number} status - HTTP status (0 if it never got a response).
  * @property {number} durationMs - Time from request to response.
  * @property {string} [requestId] - The `X-Request-ID` response header.
  * @property {string} [contentType]
  * @property {unknown} [body] - Parsed JSON body, or text.
- * @property {string} [error] - Why it got no response, e.g. `net::ERR_ABORTED`.
+ * @property {string} [error] - Why it got no response, for example `net::ERR_ABORTED`.
  */
 
 /**
- * `true` when the app itself cancelled the request (e.g. a newer search
+ * `true` when the app itself cancelled the request (for example, a newer search
  * replaced it). Shown grey as "(canceled)", like DevTools, not as a failure.
  *
  * @param {NetworkEntry} e
@@ -112,7 +112,7 @@ export const isCanceled = (e) => e.status === 0 && /ABORTED|cancel/i.test(e.erro
  * The status as DevTools would show it.
  *
  * @param {NetworkEntry} e
- * @returns {string} e.g. `200`, `(canceled)`, `(failed)`.
+ * @returns {string} `200`, `(canceled)`, `(failed)` and so on.
  */
 export const statusLabel = (e) => (e.status ? String(e.status) : isCanceled(e) ? '(canceled)' : '(failed)')
 
@@ -177,8 +177,8 @@ ${rows || '<tr><td colspan="6" class="muted">No API requests were made in this t
 
 /**
  * @typedef {object} EvidenceTest One test's evidence, as written by the e2e fixture.
- * @property {string} title - Full test title, e.g. "search › filters by city".
- * @property {string} file - Spec file, e.g. `e2e/search.spec.ts`.
+ * @property {string} title - Full test title, for example "search › filters by city".
+ * @property {string} file - Spec file, for example `e2e/search.spec.ts`.
  * @property {'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted'} status
  * @property {string} dir - Folder of this test's files, relative to the run folder.
  * @property {{ label: string, file: string }[]} screenshots - In capture order.
@@ -222,7 +222,7 @@ export function buildEvidenceMarkdown({ tests, imageUrl, reason, commit }) {
     '',
   ]
   if (!tests.length) lines.push('_No tests ran._', '')
-  // Above the first test's accordion, only when a test actually hit the map.
+  // Above the first test's accordion, only when a test hit the map.
   if (tests.some((t) => t.mapTilesBlocked)) lines.push(MAP_TILES_NOTE, '')
   for (const t of tests) {
     const icon = STATUS_ICON[t.status] ?? '•'
@@ -264,7 +264,7 @@ export function buildEvidenceMarkdown({ tests, imageUrl, reason, commit }) {
  *
  * @remarks
  * Only the text between the markers changes, so everything the author wrote
- * is kept. If there are no markers yet (e.g. the template section was
+ * is kept. If there are no markers yet (because the template section was
  * deleted), the section is appended at the end.
  *
  * @param {string} body - The current PR description.

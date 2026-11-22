@@ -15,7 +15,7 @@ import { StatusBadge } from './StatusBadge'
  * Build the hover text for a result's score cell.
  *
  * @param r - The result whose score to explain.
- * @returns A one-line explanation, e.g.
+ * @returns A one-line explanation, for example
  *   `"Budget fit 1.00 · Recency 0.10 (98 days on market)"`.
  */
 function scoreTitle(r: ListingResult): string {
