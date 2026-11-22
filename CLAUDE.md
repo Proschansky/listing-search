@@ -16,9 +16,10 @@ Monorepo: `backend/` (FastAPI, Python 3.10+) and `frontend/` (React 19 + TypeScr
 
 ```bash
 make setup    # install everything + git hooks
-make check    # lint + tests with coverage gates (pre-commit runs this per half)
+make check    # lint + tests with coverage gates (no e2e)
 make e2e      # Playwright suite
-make ci       # check + e2e (pre-push and CI run this)
+make ci       # audit + check + e2e: the pre-push gate (CI runs the same checks as separate jobs)
+# Docs-only changes (Markdown, docs/) skip lint and tests automatically; the vulnerability check always runs on push.
 make openapi  # regenerate backend/openapi.json after any API change
 ```
 

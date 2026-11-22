@@ -34,8 +34,8 @@ git config core.hooksPath .githooks
 #
 # Limitation: only variables set when this script runs are visible. If you
 # export GIT_SSH in a shell profile but run `make hooks` from somewhere that
-# doesn't load it (an IDE, say), it can't be seen; the README explains how
-# to remove the setting.
+# doesn't load it (an IDE, say), it can't be seen; the engineering guide explains how
+# to remove the setting (docs/engineering.md).
 KEEPALIVE="-o ServerAliveInterval=30 -o ServerAliveCountMax=20"
 current="$(git config --get core.sshCommand || true)"
 skip_reason=""
@@ -61,4 +61,4 @@ elif [ -z "$current" ]; then
   git config --local core.sshCommand "ssh $KEEPALIVE"
 fi
 
-echo "Git hooks installed: pre-commit (lint + tests for what you changed), pre-push (everything + e2e)."
+echo "Git hooks installed: pre-commit (lint and type checks for what you changed), pre-push (the full gate, once per version of the code)."
