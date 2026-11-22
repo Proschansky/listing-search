@@ -1,0 +1,194 @@
+{
+  "title": "SimplyRETS source › shows SimplyRETS listings with their source and photos @smoke",
+  "file": "e2e/sources.spec.ts",
+  "status": "passed",
+  "dir": "sources-simplyrets-source-shows-simplyrets-listings-with-their-source-and-photos",
+  "screenshots": [
+    {
+      "label": "Houston results from SimplyRETS",
+      "file": "01-houston-results-from-simplyrets.png"
+    },
+    {
+      "label": "Drawer with SimplyRETS photos",
+      "file": "02-drawer-with-simplyrets-photos.png"
+    },
+    {
+      "label": "Final state",
+      "file": "03-final-state.png"
+    }
+  ],
+  "networkImage": "network.png",
+  "network": [
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 0,
+      "durationMs": 35,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Houston&pageSize=10",
+      "status": 0,
+      "durationMs": 9,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 200,
+      "durationMs": 812,
+      "requestId": "d5c6b8f1e2cd4a348630ca14c40c784d",
+      "contentType": "application/json",
+      "body": {
+        "cities": [
+          "Chantilly",
+          "Cypress",
+          "Fairfax",
+          "Houston",
+          "Manassas",
+          "Reston",
+          "Springfield",
+          "Vienna"
+        ],
+        "statuses": [
+          "active",
+          "pending",
+          "sold"
+        ],
+        "sortOptions": [
+          "relevance",
+          "newest",
+          "price_asc",
+          "price_desc",
+          "sqft_desc"
+        ],
+        "maxPageSize": 100,
+        "parameters": [
+          "minPrice",
+          "maxPrice",
+          "minBedrooms",
+          "city",
+          "keyword",
+          "targetBudget",
+          "status",
+          "page",
+          "pageSize",
+          "asOf",
+          "sort"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Houston&pageSize=10",
+      "status": 200,
+      "durationMs": 811,
+      "requestId": "de6e6de19eac40c79d58ccbfbbf22001",
+      "contentType": "application/json",
+      "body": {
+        "results": [
+          {
+            "listingKey": "1200-bayou-bend-dr-houston-tx",
+            "address": "1200 Bayou Bend Dr",
+            "city": "Houston",
+            "state": "TX",
+            "zip": "77002",
+            "price": 485000,
+            "bedrooms": 3,
+            "bathrooms": 2.5,
+            "sqft": 1850,
+            "latitude": 29.7604,
+            "longitude": -95.3698,
+            "listedDate": "2026-08-20",
+            "status": "active",
+            "description": "Two-story home near the bayou trail, covered patio.",
+            "relevanceScore": 0.114,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.114,
+              "daysOnMarket": 94
+            },
+            "sources": [
+              {
+                "source": "SIMPLYRETS",
+                "id": "9001",
+                "address": "1200 Bayou Bend Dr",
+                "price": 485000,
+                "listedDate": "2026-08-20",
+                "status": "active"
+              }
+            ],
+            "photos": [
+              "https://photos.example.com/simplyrets/9001/1.jpg",
+              "https://photos.example.com/simplyrets/9001/2.jpg",
+              "https://photos.example.com/simplyrets/9001/3.jpg"
+            ]
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "pageSize": 10,
+          "totalResults": 1,
+          "totalPages": 1,
+          "hasPrevious": false,
+          "hasNext": false
+        },
+        "warnings": []
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings/1200-bayou-bend-dr-houston-tx",
+      "status": 0,
+      "durationMs": 183,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings/1200-bayou-bend-dr-houston-tx",
+      "status": 200,
+      "durationMs": 187,
+      "requestId": "09b712b940d74562ab6cd44baef64d6e",
+      "contentType": "application/json",
+      "body": {
+        "listingKey": "1200-bayou-bend-dr-houston-tx",
+        "address": "1200 Bayou Bend Dr",
+        "city": "Houston",
+        "state": "TX",
+        "zip": "77002",
+        "price": 485000,
+        "bedrooms": 3,
+        "bathrooms": 2.5,
+        "sqft": 1850,
+        "latitude": 29.7604,
+        "longitude": -95.3698,
+        "listedDate": "2026-08-20",
+        "status": "active",
+        "description": "Two-story home near the bayou trail, covered patio.",
+        "relevanceScore": 0.114,
+        "scoreBreakdown": {
+          "budget": null,
+          "recency": 0.114,
+          "daysOnMarket": 94
+        },
+        "sources": [
+          {
+            "source": "SIMPLYRETS",
+            "id": "9001",
+            "address": "1200 Bayou Bend Dr",
+            "price": 485000,
+            "listedDate": "2026-08-20",
+            "status": "active"
+          }
+        ],
+        "photos": [
+          "https://photos.example.com/simplyrets/9001/1.jpg",
+          "https://photos.example.com/simplyrets/9001/2.jpg",
+          "https://photos.example.com/simplyrets/9001/3.jpg"
+        ]
+      }
+    }
+  ],
+  "mapTilesBlocked": false
+}

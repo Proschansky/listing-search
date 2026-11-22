@@ -1,0 +1,138 @@
+{
+  "title": "SimplyRETS source › still shows the sample listings",
+  "file": "e2e/sources.spec.ts",
+  "status": "passed",
+  "dir": "sources-simplyrets-source-still-shows-the-sample-listings",
+  "screenshots": [
+    {
+      "label": "Final state",
+      "file": "01-final-state.png"
+    }
+  ],
+  "networkImage": "network.png",
+  "network": [
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 0,
+      "durationMs": 32,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Vienna&pageSize=10",
+      "status": 0,
+      "durationMs": 14,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 200,
+      "durationMs": 712,
+      "requestId": "d0489b2c61b54209aca0f4e89b8ced67",
+      "contentType": "application/json",
+      "body": {
+        "cities": [
+          "Chantilly",
+          "Cypress",
+          "Fairfax",
+          "Houston",
+          "Manassas",
+          "Reston",
+          "Springfield",
+          "Vienna"
+        ],
+        "statuses": [
+          "active",
+          "pending",
+          "sold"
+        ],
+        "sortOptions": [
+          "relevance",
+          "newest",
+          "price_asc",
+          "price_desc",
+          "sqft_desc"
+        ],
+        "maxPageSize": 100,
+        "parameters": [
+          "minPrice",
+          "maxPrice",
+          "minBedrooms",
+          "city",
+          "keyword",
+          "targetBudget",
+          "status",
+          "page",
+          "pageSize",
+          "asOf",
+          "sort"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Vienna&pageSize=10",
+      "status": 200,
+      "durationMs": 713,
+      "requestId": "9eab574447464447bf90acd96b7ef168",
+      "contentType": "application/json",
+      "body": {
+        "results": [
+          {
+            "listingKey": "55-elm-ct-vienna-va",
+            "address": "55 Elm Ct",
+            "city": "Vienna",
+            "state": "VA",
+            "zip": "22180",
+            "price": 470000,
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "sqft": 1300,
+            "latitude": 38.9012,
+            "longitude": -77.2653,
+            "listedDate": "2026-08-15",
+            "status": "active",
+            "description": "Quiet cul-de-sac, walkable to Metro. No pets.",
+            "relevanceScore": 0.1015,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1015,
+              "daysOnMarket": 99
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A5",
+                "address": "55 Elm Ct",
+                "price": 470000,
+                "listedDate": "2026-09-04",
+                "status": "active"
+              },
+              {
+                "source": "MLS_B",
+                "id": "B11",
+                "address": "55 Elm Court",
+                "price": 465000,
+                "listedDate": "2026-08-15",
+                "status": "active"
+              }
+            ],
+            "photos": []
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "pageSize": 10,
+          "totalResults": 1,
+          "totalPages": 1,
+          "hasPrevious": false,
+          "hasNext": false
+        },
+        "warnings": []
+      }
+    }
+  ],
+  "mapTilesBlocked": false
+}

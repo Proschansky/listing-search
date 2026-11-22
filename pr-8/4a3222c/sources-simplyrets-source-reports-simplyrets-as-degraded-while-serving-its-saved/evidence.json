@@ -1,0 +1,15 @@
+{
+  "title": "SimplyRETS source › reports SimplyRETS as degraded while serving its saved copy",
+  "file": "e2e/sources.spec.ts",
+  "status": "passed",
+  "dir": "sources-simplyrets-source-reports-simplyrets-as-degraded-while-serving-its-saved",
+  "screenshots": [
+    {
+      "label": "Final state",
+      "file": "01-final-state.png"
+    }
+  ],
+  "networkImage": "network.png",
+  "network": [],
+  "mapTilesBlocked": false
+}
