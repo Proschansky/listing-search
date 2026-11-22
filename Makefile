@@ -6,14 +6,16 @@
 #   make lint       linters + formatters + type checks, both halves
 #   make test       unit/component/a11y tests with coverage gates (>= 95%)
 #   make e2e        Playwright end-to-end tests (starts both servers itself)
-#   make check      lint + test            <- the pre-commit hook runs this per half
-#   make ci         audit + check + e2e    <- the pre-push hook and CI run this
+#   make check      lint + test (no e2e)
+#   make ci         audit + check + e2e    <- the pre-push hook runs this; CI runs
+#                                            the same checks as separate jobs
 #   make audit      dependency vulnerability gate (pre-push blocks on it; CI
 #                   runs it with --report-only, so it only warns there)
 #   make openapi    regenerate backend/openapi.json after an API change
 #
 # Each half has its own targets (lint-backend, test-frontend, ...), so the
-# pre-commit hook can skip the half you didn't touch.
+# pre-commit hook can lint only the half you touched. Tests run at push
+# time only (once per version of the code; see .githooks/pre-push).
 
 PY      := backend/.venv/bin
 # Newest Python 3.10+ available (plain python3 may be an older system one).
