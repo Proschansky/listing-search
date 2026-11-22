@@ -1,18 +1,27 @@
-"""Load feed data once at startup and keep the merged view in memory.
+"""Load listings from every configured source and keep the merged view in memory.
 
-Twelve listings don't need a database. The ``ListingRepository`` boundary
-means swapping in one later only touches this file: the rest of the app
-just asks the repository for ``merged`` listings.
+A few hundred listings don't need a database. The ``ListingRepository``
+boundary means swapping one in later only touches this file: the rest of
+the app just asks the repository for ``merged`` listings.
+
+Listings come from sources (see ``sources/``). ``from_sources`` loads each
+one, validates and merges their records together, and keeps a status per
+source for the readiness check.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from .dedupe import merge_listings
 from .models import Listing, MergedListing
+
+if TYPE_CHECKING:  # imported for type hints only; sources import this module
+    from .sources.base import Source
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +71,14 @@ class ListingRepository:
     instead of crash-looping.
     """
 
-    def __init__(self, listings: list[Listing], *, load_error: str | None = None, skipped: int = 0):
+    def __init__(
+        self,
+        listings: list[Listing],
+        *,
+        load_error: str | None = None,
+        skipped: int = 0,
+        source_status: dict[str, dict[str, Any]] | None = None,
+    ):
         # Keep the raw records (handy for health checks and debugging) and
         # merge cross-feed duplicates once, up front. Every search then reads
         # the pre-merged list instead of re-merging per request.
@@ -70,6 +86,8 @@ class ListingRepository:
         self.merged: list[MergedListing] = merge_listings(listings)
         self.load_error = load_error  # None = loaded fine
         self.skipped = skipped  # records rejected by parse_feed
+        # One entry per source for the readiness check: state, counts, errors.
+        self.source_status: dict[str, dict[str, Any]] = source_status or {}
         # Index by listing key for O(1) detail lookups (GET /listings/{key}).
         self._by_key = {m.listing_key: m for m in self.merged}
 
@@ -102,6 +120,59 @@ class ListingRepository:
             extra={"records": len(listings), "skipped": len(problems)},
         )
         return cls(listings, skipped=len(problems))
+
+    @classmethod
+    def from_sources(cls, sources: Iterable[Source], *, allow_network: bool = True) -> ListingRepository:
+        """Load every source, then validate and merge all their records together.
+
+        1. Each source returns its records (``SourceResult``). A source that
+           fails reports why instead of raising, so one broken source can't
+           stop the others from loading.
+        2. Each source's records go through ``parse_feed`` separately, so the
+           skipped count in the health check is per source.
+        3. All valid records are merged together, so a home listed by two
+           sources still shows up once.
+
+        A required source (the sample file) that fails sets ``load_error``,
+        and the service reports itself as not ready. An optional source
+        (SimplyRETS) that fails only shows up in its own status.
+        """
+        listings: list[Listing] = []
+        status: dict[str, dict[str, Any]] = {}
+        load_errors: list[str] = []
+        skipped_total = 0
+        for source in sources:
+            result = source.load(allow_network=allow_network)
+            parsed, problems = parse_feed(result.records)
+            for problem in problems:
+                log.warning("Skipped %s record: %s", result.name, problem)
+            listings.extend(parsed)
+            skipped = result.skipped + len(problems)
+            skipped_total += skipped
+            status[result.name] = {
+                "status": result.state,
+                "listings": len(parsed),
+                "skippedRecords": skipped,
+                "fetchedAt": result.fetched_at.isoformat() if result.fetched_at else None,
+                "error": result.error,
+                **result.detail,
+            }
+            if result.state == "unavailable" and source.required:
+                load_errors.append(result.error or f"{result.name} unavailable")
+            log.info(
+                "Loaded %d %s record(s) (%s, %d skipped)",
+                len(parsed),
+                result.name,
+                result.state,
+                skipped,
+                extra={"source": result.name, "state": result.state, "records": len(parsed), "skipped": skipped},
+            )
+        return cls(
+            listings,
+            load_error="; ".join(load_errors) or None,
+            skipped=skipped_total,
+            source_status=status,
+        )
 
     @classmethod
     def load_safely(cls, path: Path = DEFAULT_DATA_PATH) -> ListingRepository:

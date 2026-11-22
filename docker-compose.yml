@@ -9,6 +9,8 @@ services:
     environment:
       LISTING_ENVIRONMENT: production
       LISTING_LOG_FORMAT: json
+      # Sample data plus the SimplyRETS live feed. Set to '["sample"]' to go offline.
+      LISTING_SOURCES: '["sample","simplyrets"]'
       LISTING_RATE_LIMIT_PER_MINUTE: "120"
     # Not published to the host: only reachable through the web proxy.
     expose: ["8000"]

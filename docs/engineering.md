@@ -56,12 +56,16 @@ flowchart LR
     D[dedupe.py]
   end
   FEED[(sample_listings.json)]
+  SR[(SimplyRETS API)]
 
   UI -- "fetch + retry/backoff" --> P --> MW --> R
   R --> V
   R --> S --> SC
   S --> REPO
-  FEED -- "load once at startup" --> D --> REPO
+  SRC[sources/<br/>sample · simplyrets]
+  FEED --> SRC
+  SR -- "every 15 min, with retry,<br/>breaker and snapshot" --> SRC
+  SRC -- "to the feed format" --> D --> REPO
 ```
 
 Two rules shape the code:
@@ -72,7 +76,7 @@ Two rules shape the code:
 A search moves through these stages, each a small function in its own module:
 
 ```
-feed JSON ─► parse and check records ─► merge duplicates ─► (in memory, once at startup)
+each source ─► feed records ─► parse and check ─► merge duplicates ─► (in memory; rebuilt on each refresh)
 request ─► middleware ─► validate parameters ─► filter ─► score ─► sort ─► paginate ─► JSON
 ```
 
@@ -84,10 +88,29 @@ request ─► middleware ─► validate parameters ─► filter ─► score 
 | Duplicate merging | `dedupe.py` |
 | Scoring | `scoring.py` |
 | Filter, sort, paginate | `search.py` |
+| Data sources: sample file, SimplyRETS, retry, circuit breaker, snapshot | `sources/` |
 | Loading and lookup | `repository.py` |
+| The current listings and the background refresh | `store.py` |
 | Routes and error responses | `main.py`, `errors.py` |
 
-A new requirement should touch one place: a new filter goes in `matches_filters`, a new sort in `rank` and `SORT_OPTIONS`, a new ranking signal in `scoring.py`.
+A new requirement should touch one place: a new filter goes in `matches_filters`, a new sort in `rank` and `SORT_OPTIONS`, a new ranking signal in `scoring.py`, and a new data source in `sources/`.
+
+### Data sources
+
+A source is a class with a `name`, a `required` flag and a `load()` method that returns its records in the app's feed format (the JSON shape of `sample_listings.json`). From there every source goes through the same checks and duplicate merging. Adding one means writing that class and adding its name to `build_sources` in `store.py`.
+
+The SimplyRETS source (`sources/simplyrets.py`) has three parts:
+
+1. `to_feed_record` maps one SimplyRETS listing to the feed format. State names become codes ("Texas" becomes "TX"). Bathrooms are SimplyRETS's total, or else full plus half plus three-quarter baths. Statuses map to the app's three: `Active` to active, `Pending` and `ActiveUnderContract` to pending, `Closed` to sold. Listings with any other status, or with a missing field, are skipped and counted.
+2. `fetch_all` downloads every page, following the `Link: rel="next"` header that SimplyRETS uses for paging.
+3. `SimplyRetsSource.load` wraps the download with the tools in `sources/resilience.py`:
+   - `retry`: up to three tries, waiting about 0.5 s then 1 s, with random jitter so many clients don't retry in step. It retries only network errors, timeouts, 429 and 5xx. A 401 (bad login) fails at once, since trying again won't help.
+   - `CircuitBreaker`: after three failed downloads in a row it stops calling SimplyRETS for five minutes, then lets one trial call through.
+   - `SnapshotCache`: each good download is saved to `backend/.cache/simplyrets.json` (written to a temporary file, then renamed, so a crash can't leave half a file). When SimplyRETS can't be reached, the snapshot is served instead.
+
+On startup the service loads the sample and the snapshot without calling out, so it's ready at once even if SimplyRETS is slow. A background task (`refresh_forever` in `store.py`) then downloads fresh data, and again every `LISTING_SIMPLYRETS_REFRESH_MINUTES`. Each refresh builds a new repository and swaps it in with one assignment, so a request never sees half-updated data. A refresh that comes back unusable is thrown away and the old listings stay.
+
+The sample source is `required`: if its file is missing the service isn't ready. SimplyRETS isn't: when it's down the service stays ready and `/health/ready` shows the source as `degraded` (serving the snapshot) or `unavailable` (no snapshot yet).
 
 ## Configuration
 
@@ -96,7 +119,13 @@ Every setting lives in `backend/app/config.py`. They're typed and checked at sta
 | Variable | Default | Meaning |
 |---|---|---|
 | `LISTING_ENVIRONMENT` | `development` | `development`, `test` or `production`. Production hides `/docs` and `/openapi.json`. |
-| `LISTING_LISTINGS_PATH` | the bundled sample | Feed file to load at startup |
+| `LISTING_LISTINGS_PATH` | the bundled sample | Feed file the `sample` source loads |
+| `LISTING_SOURCES` | `["sample"]` | JSON list of sources to load: `sample`, `simplyrets` or both. `start.sh` and Docker use both. |
+| `LISTING_SIMPLYRETS_URL` | `https://api.simplyrets.com/properties` | SimplyRETS endpoint |
+| `LISTING_SIMPLYRETS_USERNAME`, `LISTING_SIMPLYRETS_PASSWORD` | the public demo login | SimplyRETS credentials. Kept out of logs and error messages. |
+| `LISTING_SIMPLYRETS_TIMEOUT_SECONDS` | `5` | Time limit for each request to SimplyRETS |
+| `LISTING_SIMPLYRETS_REFRESH_MINUTES` | `15` | How often the running service downloads the feed again |
+| `LISTING_SIMPLYRETS_CACHE_PATH` | `backend/.cache/simplyrets.json` | Where the last good download is saved (git-ignored) |
 | `LISTING_LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR` |
 | `LISTING_LOG_FORMAT` | `text` | `json` for one JSON object per line, which log tools such as Datadog read. `text` is easier to read by eye. |
 | `LISTING_CORS_ORIGINS` | the Vite dev addresses | JSON list of browser origins allowed to call the API directly |
@@ -115,6 +144,7 @@ Every setting lives in `backend/app/config.py`. They're typed and checked at sta
 
 ### Failure handling
 
+- If SimplyRETS fails, the service keeps serving its last good download, retries brief failures, and stops calling for five minutes after three failures in a row. See [Data sources](#data-sources).
 - A missing or corrupt data file leaves the service running but not ready, with the reason in `/health/ready`, so it doesn't crash and restart over and over. Bad individual records are skipped, logged and counted.
 - Any unexpected error is logged with its full traceback and request ID, and the caller gets a generic 500 in the standard error shape. Internal details never reach the client.
 - Rate limiting uses a token bucket per client IP address, in `middleware.py`: a client can burst up to `RATE_LIMIT_BURST` requests and sustain `RATE_LIMIT_PER_MINUTE`. Refused requests get a 429 with `Retry-After`, and every response carries `RateLimit-Limit` and `RateLimit-Remaining` headers. Health checks are exempt. The counters live in memory, with a cap on how many clients are tracked. Behind several servers, a shared store such as Redis would replace them, and only `TokenBucketLimiter` would change.
@@ -249,9 +279,12 @@ npm run pr:evidence -- --all   # record every end-to-end test, not just the chan
 backend/
   app/        main.py (routes) · config.py · middleware.py · observability.py · errors.py
               validation.py · dedupe.py · scoring.py · search.py · repository.py · models.py
+              store.py (current listings, background refresh)
+    sources/  base.py · sample.py · simplyrets.py · resilience.py
   data/       sample_listings.json
-  scripts/    export_openapi.py
+  scripts/    export_openapi.py · live_check.py (make live-check)
   tests/      one test module per app module, plus test_api and test_contract
+              fixtures/simplyrets_snapshot.json (hand-written SimplyRETS records)
   openapi.json · Dockerfile · pyproject.toml · requirements.txt · requirements-dev.txt
 frontend/
   src/        App.tsx (+ App.module.scss) · api.ts · main.tsx · a11y.test.tsx

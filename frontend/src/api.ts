@@ -85,6 +85,11 @@ export interface ListingResult {
   scoreBreakdown: { budget: number | null; recency: number; daysOnMarket: number }
   /** Every feed record that was merged into this listing. */
   sources: SourceRef[]
+  /**
+   * Photo URLs (always `https`), best first. Empty when no feed has photos,
+   * which is the case for the bundled sample data.
+   */
+  photos: string[]
 }
 
 /** Page metadata returned with every search. */

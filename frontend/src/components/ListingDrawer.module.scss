@@ -127,6 +127,39 @@
 }
 
 // --- Tables: score breakdown and source feeds ------------------------------------
+// Photo row: one photo fills most of the width so the next one peeks in,
+// which tells people the row scrolls. Snap points keep a photo aligned.
+.photos {
+  margin-block: 4px 18px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  border-radius: var(--radius-sm);
+
+  ul {
+    @include m.reset-list;
+    display: flex;
+    gap: 8px;
+  }
+
+  li {
+    flex: 0 0 85%;
+    scroll-snap-align: start;
+  }
+
+  img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2); // placeholder colour while a photo loads
+  }
+
+  &:focus-visible {
+    @include m.focus-ring;
+  }
+}
+
 .table-scroll {
   overflow-x: auto; // a long address scrolls instead of widening the drawer
 }

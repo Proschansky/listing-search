@@ -25,6 +25,9 @@ Run:  uvicorn app.main:app --reload --port 8000
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
 from datetime import date
 from typing import Any
 
@@ -41,6 +44,7 @@ from .observability import configure_logging
 from .repository import ListingRepository
 from .scoring import score_listing
 from .search import search
+from .store import RepositoryStore, build_sources, needs_refresh, refresh_forever
 from .validation import (
     KNOWN_PARAMS,
     MAX_PAGE_SIZE,
@@ -101,12 +105,32 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_format)
 
-    # Step 1: get the data. Tests inject a repository; otherwise load the
-    # configured file. load_safely never raises: a broken file gives an
-    # empty repository that /health/ready reports as not ready.
-    repo = repository or ListingRepository.load_safely(settings.listings_path)
+    # Step 1: get the data. Tests inject a repository. Otherwise load the
+    # configured sources without calling the network: the sample file, plus
+    # SimplyRETS's last saved download if there is one. The service is up at
+    # once, and the background task below does the first real download, so a
+    # slow or failing third-party API never delays startup. Loading never
+    # raises: a broken sample file gives an empty repository that
+    # /health/ready reports as not ready.
+    sources = [] if repository is not None else build_sources(settings)
+    store = RepositoryStore(repository or ListingRepository.from_sources(sources, allow_network=False))
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        # Keep sources that download data (SimplyRETS) fresh while the app
+        # runs, starting straight away. Cancelled cleanly on shutdown.
+        task = None
+        if needs_refresh(sources):
+            interval = settings.simplyrets_refresh_minutes * 60
+            task = asyncio.create_task(refresh_forever(store, sources, interval))
+        yield
+        if task is not None:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
 
     app = FastAPI(
+        lifespan=lifespan,
         title="Listing Search Service",
         version=API_VERSION,
         description="Search, deduplicate and rank MLS listings. All endpoints are read-only.",
@@ -115,7 +139,7 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
         redoc_url="/redoc" if settings.docs_enabled else None,
         openapi_url="/openapi.json" if settings.docs_enabled else None,
     )
-    app.state.repository = repo
+    app.state.store = store
     app.state.settings = settings
 
     # Step 2: middleware. Starlette runs the *last added* outermost, so this
@@ -178,6 +202,7 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
         A load balancer stops routing traffic to an instance that answers 503
         here, without restarting it (that's what liveness is for).
         """
+        repo = store.current  # one consistent snapshot for this request
         body = {
             "status": "ok" if repo.ready else "unavailable",
             "version": API_VERSION,
@@ -189,7 +214,11 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
                     "rawRecords": len(repo.raw),
                     "skippedRecords": repo.skipped,
                     "error": repo.load_error,
-                }
+                },
+                # Per source: ok, degraded (serving its last good download)
+                # or unavailable. A degraded optional source doesn't make the
+                # service unready: searches still work.
+                "sources": repo.source_status,
             },
         }
         return JSONResponse(status_code=200 if repo.ready else 503, content=body)
@@ -197,11 +226,13 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
     @router.get("/health", tags=["health"], summary="Summary health check")
     def health() -> dict:
         """Backwards-compatible summary. Also shows the dedupe effect (12 raw -> 8 merged)."""
+        repo = store.current  # one consistent snapshot for this request
         return {"status": "ok" if repo.ready else "degraded", "listings": len(repo.merged), "rawRecords": len(repo.raw)}
 
     @router.get("/meta", tags=["search"], summary="Reference data for building a search UI")
     def meta() -> dict:
         """Lets the UI build its city picker, status and sort options from real data."""
+        repo = store.current  # one consistent snapshot for this request
         return {
             "cities": repo.cities(),
             "statuses": sorted(VALID_STATUSES),
@@ -219,6 +250,7 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
     )
     def listings(request: Request) -> dict:
         """Filter, rank and paginate the deduplicated listings."""
+        repo = store.current  # one consistent snapshot for this request
         # Read the raw multi-dict ourselves (rather than typed FastAPI params)
         # so validation lives in one testable place and every error comes back
         # in one consistent 400 shape instead of FastAPI's default 422.
@@ -244,6 +276,7 @@ def create_app(repository: ListingRepository | None = None, settings: Settings |
         Accepts ``targetBudget`` and ``asOf`` so the score matches what the
         search that linked here showed. Any other parameter is a 400.
         """
+        repo = store.current  # one consistent snapshot for this request
         raw = {key: request.query_params.getlist(key) for key in request.query_params}
         unexpected = sorted(set(raw) - DETAIL_PARAMS)
         if unexpected:

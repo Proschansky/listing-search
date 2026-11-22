@@ -32,6 +32,42 @@ interface Props {
 /** What the drawer is showing: the data, or why it can't. */
 type DetailState = { kind: 'ready'; listing: ListingResult } | { kind: 'loading' } | { kind: 'error'; message: string }
 
+/**
+ * A row of listing photos that scrolls sideways.
+ *
+ * @remarks
+ * The row is a focusable, labelled region so keyboard users can scroll it
+ * with the arrow keys (axe's `scrollable-region-focusable` rule). Each
+ * image's alt text gives the address and its position ("55 Elm Ct, view 1
+ * of 6"). Feeds don't describe what a photo shows, so that's the most a
+ * screen reader can be told, and screen readers already say it's an image. Photos load lazily, because most people open a drawer to read the
+ * facts and never scroll the row.
+ *
+ * @param props.photos - Photo URLs, in the feed's order.
+ * @param props.address - The listing's street address, for alt text.
+ * @returns The photo region.
+ */
+function PhotoStrip({ photos, address }: { photos: string[]; address: string }) {
+  return (
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- WCAG requires scrollable regions to be keyboard-focusable
+    <section className={styles.photos} tabIndex={0} aria-label={`Photos (${photos.length})`}>
+      <ul>
+        {photos.map((url, i) => (
+          <li key={url}>
+            <img
+              src={url}
+              alt={`${address}, view ${i + 1} of ${photos.length}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              referrerPolicy="no-referrer"
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /** Elements that can take keyboard focus, for the focus trap. */
 const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
@@ -195,6 +231,8 @@ export function ListingDrawer({ listingKey, initial, context, onClose }: Props) 
             </dl>
 
             {listing.description && <p className={styles.description}>{listing.description}</p>}
+
+            {listing.photos.length > 0 && <PhotoStrip photos={listing.photos} address={listing.address} />}
 
             <h3>Why it ranked here</h3>
             <table className={styles.miniTable}>

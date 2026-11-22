@@ -197,4 +197,4 @@ def test_create_app_loads_the_configured_file(tmp_path):
     path.write_text(json.dumps(records))
     client = TestClient(create_app(settings=Settings(listings_path=path, rate_limit_enabled=False)))
     assert client.get("/api/v1/health/ready").json()["checks"]["data"]["rawRecords"] == 2
-    assert isinstance(client.app.state.repository, ListingRepository)
+    assert isinstance(client.app.state.store.current, ListingRepository)

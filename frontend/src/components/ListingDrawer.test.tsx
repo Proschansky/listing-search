@@ -154,6 +154,38 @@ describe('ListingDrawer', () => {
     await expectNoA11yViolations(container, { skip: COMPONENT_ONLY_SKIP })
   })
 
+  describe('photos', () => {
+    const photos = ['https://photos.example.com/1.jpg', 'https://photos.example.com/2.jpg']
+    const withPhotos = { ...listing, photos }
+
+    it('shows a labelled, keyboard-scrollable row of photos with alt text', async () => {
+      fetchMock.mockReturnValue(respond(200, withPhotos))
+      render(<ListingDrawer listingKey="k" initial={withPhotos} context={noContext} onClose={() => {}} />)
+      const region = screen.getByRole('region', { name: 'Photos (2)' })
+      expect(region).toHaveAttribute('tabindex', '0')
+      const imgs = screen.getAllByRole('img')
+      expect(imgs.map((img) => img.getAttribute('alt'))).toEqual(['55 Elm Ct, view 1 of 2', '55 Elm Ct, view 2 of 2'])
+      expect(imgs.map((img) => img.getAttribute('src'))).toEqual(photos)
+      // The first photo is visible at once; the rest load as they scroll in.
+      expect(imgs.map((img) => img.getAttribute('loading'))).toEqual(['eager', 'lazy'])
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    })
+
+    it('shows no photo row when the listing has none', async () => {
+      render(<ListingDrawer listingKey="k" initial={listing} context={noContext} onClose={() => {}} />)
+      expect(screen.queryByRole('region', { name: /Photos/ })).not.toBeInTheDocument()
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    })
+
+    it('has no accessibility violations with photos', async () => {
+      fetchMock.mockReturnValue(respond(200, withPhotos))
+      const { container } = render(
+        <ListingDrawer listingKey="k" initial={withPhotos} context={noContext} onClose={() => {}} />,
+      )
+      await expectNoA11yViolations(container, { skip: COMPONENT_ONLY_SKIP })
+    })
+  })
+
   it('has no accessibility violations while loading or failed', async () => {
     fetchMock.mockReturnValue(respond(404, { error: { code: 'NOT_FOUND', message: 'x', details: [] } }))
     const { container } = render(<ListingDrawer listingKey="gone" context={noContext} onClose={() => {}} />)

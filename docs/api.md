@@ -45,12 +45,37 @@ A successful search:
     "latitude": 38.9012, "longitude": -77.2653,
     "relevanceScore": 0.8847,
     "scoreBreakdown": { "budget": 1.0, "recency": 0.6156, "daysOnMarket": 21 },
-    "sources": [{ "source": "MLS_A", "id": "A5" }, { "source": "MLS_B", "id": "B11" }]
+    "sources": [{ "source": "MLS_A", "id": "A5" }, { "source": "MLS_B", "id": "B11" }],
+    "photos": []
   }],
   "pagination": { "page": 1, "pageSize": 10, "totalResults": 7, "totalPages": 1, "hasPrevious": false, "hasNext": false },
   "warnings": []
 }
 ```
+
+`sources` lists every feed record merged into the result. SimplyRETS listings have the source `SIMPLYRETS`. `photos` is a list of `https` image URLs, best first; it's empty for listings with no photos, which includes all the sample data. Both fields are also on `GET /api/v1/listings/{listingKey}`.
+
+### Readiness
+
+`GET /api/v1/health/ready` reports the merged data and each source:
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "data": { "ok": true, "listings": 86, "rawRecords": 90, "skippedRecords": 0, "error": null },
+    "sources": {
+      "sample": { "status": "ok", "listings": 12, "skippedRecords": 0, "fetchedAt": null, "error": null },
+      "simplyrets": {
+        "status": "degraded", "listings": 78, "skippedRecords": 0,
+        "fetchedAt": "2026-11-22T05:21:46+00:00", "error": "ConnectError: ...", "breaker": "closed"
+      }
+    }
+  }
+}
+```
+
+A source's `status` is `ok` (fresh data), `degraded` (the download failed, so its last good download is in use; `fetchedAt` says how old it is) or `unavailable` (no data from it). `breaker` is the circuit breaker: `closed` when calls go through, `open` when it has stopped calling SimplyRETS after repeated failures, and `half_open` when it's about to try again. Only a required source (the sample file) can make the service unready. A degraded or unavailable SimplyRETS still answers 200, because searches still work.
 
 ## Errors
 
@@ -83,6 +108,7 @@ One exception: when the service isn't ready, `GET /api/v1/health/ready` returns 
 | A city with no listings at all | 200 with no results and a warning listing the cities that do exist. The question is valid, it just has an empty answer. |
 | `page` past the last page | 200 with no results, full pagination details and a warning. The app offers "Go to last page". |
 | A broken record in a feed file | Skipped and logged, so one bad record can't take search down. The count appears in `/health/ready`. |
+| SimplyRETS is down or slow | The service keeps serving its last good download, or the other sources if there is none. `/health/ready` stays 200 and shows the source as `degraded` or `unavailable`. |
 | A missing or corrupt data file | The service still starts. `/health/ready` returns 503 with the reason, and searches return no results. |
 
 The app turns off the browser's own form validation, so the API is the only source of validation rules, and its messages appear next to the matching fields.

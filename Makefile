@@ -21,7 +21,7 @@ PY      := backend/.venv/bin
 # Newest Python 3.10+ available (plain python3 may be an older system one).
 PYTHON  ?= $(shell for p in python3.13 python3.12 python3.11 python3.10 python3; do command -v $$p >/dev/null 2>&1 && $$p -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null && echo $$p && break; done)
 
-.PHONY: setup hooks lint test check e2e ci audit openapi test-scripts \
+.PHONY: setup hooks lint test check e2e ci audit openapi live-check test-scripts \
         lint-backend lint-frontend test-backend test-frontend
 
 setup: hooks
@@ -70,3 +70,7 @@ ci: audit check e2e
 
 openapi:
 	cd backend && .venv/bin/python -m scripts.export_openapi
+
+# One real call to SimplyRETS to confirm the feed still maps (needs the internet; not run in CI).
+live-check:
+	cd backend && .venv/bin/python -m scripts.live_check

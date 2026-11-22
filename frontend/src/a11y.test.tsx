@@ -115,7 +115,8 @@ describe('accessibility (axe-core, whole page)', { timeout: 20_000 }, () => {
   it('detail drawer open', async () => {
     fetchMock.mockImplementation((url: string) =>
       url.startsWith('/api/v1/listings/')
-        ? respond(200, listing)
+        ? // With photos, so the photo row is checked in the full page too.
+          respond(200, { ...listing, photos: ['https://photos.example.com/1.jpg'] })
         : url.startsWith('/api/v1/meta')
           ? respond(200, { cities: [] })
           : respond(200, page()),
