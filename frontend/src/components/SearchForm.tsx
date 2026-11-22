@@ -226,9 +226,7 @@ export function SearchForm({
             giving type-ahead suggestions while still allowing any text. */}
         {field('city', 'City', { list: 'city-options', placeholder: 'Any city' })}
         {/* Keywords get the full width, like a search bar. */}
-        <div className={styles.wide}>
-          {field('keyword', 'Keywords', { placeholder: 'e.g. pool, garage, near Metro' })}
-        </div>
+        <div className={styles.wide}>{field('keyword', 'Keywords', { placeholder: 'e.g. pool, garage' })}</div>
       </div>
       <datalist id="city-options">
         {cities.map((c) => (
