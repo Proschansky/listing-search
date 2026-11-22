@@ -123,7 +123,7 @@ describe('App', () => {
 
   it('shows a generic message for an unexpected failure', async () => {
     // A response whose `ok` getter throws makes the client reject with a plain
-    // Error rather than an ApiError - the "anything unexpected" branch.
+    // Error rather than an ApiError, which is the "anything unexpected" branch.
     mockSearch(() =>
       Promise.resolve({
         json: () => Promise.resolve({}),

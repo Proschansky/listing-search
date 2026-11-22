@@ -19,7 +19,7 @@ export interface SavedSearch {
   id: string
   name: string
   /**
-   * The search as a query string, e.g. `"city=Vienna&pageSize=10"`.
+   * The search as a query string, for example `"city=Vienna&pageSize=10"`.
    *
    * @remarks
    * Stored in the same format as the page URL, so a saved search and a
@@ -51,7 +51,7 @@ export const isSavedList = (v: unknown): v is SavedSearch[] =>
  * Summarise a search in a few words, used as the default name.
  *
  * @param q - The search to describe.
- * @returns e.g. `"Vienna · 3+ bd · $400,000–$650,000 · "pool""`, or `"All active listings"`.
+ * @returns For example `"Vienna · 3+ bd · $400,000–$650,000 · "pool""`, or `"All active listings"`.
  */
 export function describeQuery(q: SearchQuery): string {
   const parts: string[] = []

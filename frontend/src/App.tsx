@@ -6,10 +6,10 @@
  * skeleton, loading, error (with retry), no results, an empty page, or
  * results as a list or a map, plus the detail drawer and saved searches.
  *
- * Data flow, in one picture:
+ * Data flow:
  *
  * ```text
- *   URL ──(on load)──► query ──► search effect ──► RequestState ──► render
+ *   URL ──(on load)──► query ──► search effect ──► Outcome ──► render
  *    ▲                   ▲  ▲
  *    └──(kept in sync)───┘  └── draft (form) ── Search button / debounced live search
  *
@@ -61,7 +61,7 @@ import ui from './styles/ui.module.scss'
  * belongs to a different request than the one currently wanted
  * (`outcome.key !== requestKey`). Deriving it this way means there's no
  * "set loading" step that could be forgotten or race with a response, and
- * the previous results simply stay on screen (dimmed) until new ones land.
+ * the previous results stay on screen (dimmed) until new ones land.
  */
 type Outcome =
   | { key: string; kind: 'success'; data: SearchResponse }
@@ -126,7 +126,7 @@ export default function App() {
   const [view, setView] = useLocalStorage<ResultsView>('listing-search:view:v1', 'list', isView)
   const [theme, setTheme] = useTheme()
 
-  // Effect 1 - on first render only: load the city list for the form's
+  // Effect 1, on first render only: load the city list for the form's
   // suggestions. Failure is ignored on purpose: the suggestions are a
   // convenience, and the city field still works as free text without them.
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function App() {
     return () => controller.abort()
   }, [])
 
-  // Effect 2 - keep the URL in sync with the submitted search and the open
+  // Effect 2: keep the URL in sync with the submitted search and the open
   // drawer, so any view can be refreshed or shared. replaceState (not
   // pushState) avoids filling browser history with every page click.
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function App() {
   // `attempt`, which makes a new key for the same query.
   const requestKey = `${toSearchParams(query)}#${attempt}`
 
-  // Effect 3 - whenever the wanted request changes: run the search.
+  // Effect 3, whenever the wanted request changes: run the search.
   useEffect(() => {
     // Step 1: abort the in-flight request if the query changes again, so a
     // slow earlier response can never overwrite a newer one. Aborting also
@@ -166,11 +166,11 @@ export default function App() {
     searchListings(query, controller.signal)
       .then((data) => setOutcome({ key: requestKey, kind: 'success', data }))
       .catch((err: unknown) => {
-        // Aborted because a newer search started - not a real error, ignore it.
+        // Aborted because a newer search started. Not a real error, so ignore it.
         if ((err as Error).name === 'AbortError') return
         if (err instanceof ApiError) {
           // A 400 is the user's input (fix the fields, don't retry). Anything
-          // else - network, 5xx, rate limit - is worth a "Try again" button.
+          // else (network, 5xx, rate limit) is worth a "Try again" button.
           setOutcome({
             key: requestKey,
             kind: 'error',
@@ -394,7 +394,7 @@ export default function App() {
               {/* Results area: shown on success, and dimmed ("stale") while loading. */}
               {data && (
                 <div className={loading ? styles.stale : undefined}>
-                  {/* Warnings from the API, e.g. an unknown city or a page past the end. */}
+                  {/* Warnings from the API, such as an unknown city or a page past the end. */}
                   {data.warnings.map((w) => (
                     <p key={w} className={cx(ui.alert, ui.warning)}>
                       {w}

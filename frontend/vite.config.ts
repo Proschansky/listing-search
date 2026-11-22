@@ -16,7 +16,7 @@
  *   browser (jsdom), with coverage thresholds that fail the run if unmet.
  *   CSS Modules there keep their original class names (`non-scoped`), so
  *   tests can select `.stale` or check `badge-active`. Real builds hash
- *   them, so no two components' classes can ever collide.
+ *   them, so classes from different components can't collide.
  *   Playwright end-to-end tests live in `e2e/` and are excluded here.
  *
  * @module
@@ -47,7 +47,7 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'],
     // Vitest's default is 5 s per test. Tests that type with userEvent (one
     // key at a time) and run full-page axe audits can exceed that on a busy
-    // machine (e.g. while a git hook runs everything at once), failing for
+    // machine (while a git hook runs everything at once, say), failing for
     // reasons that have nothing to do with the code. 15 s still catches a
     // genuine hang.
     testTimeout: 15_000,

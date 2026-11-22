@@ -35,7 +35,7 @@ export function readStorage<T>(key: string, fallback: T, isValid: (v: unknown) =
  * Like `useState`, but persisted to `localStorage` under `key`.
  *
  * @typeParam T - Type of the value.
- * @param key - Storage key. Include a version (e.g. `":v1"`) so a future
+ * @param key - Storage key. Include a version (such as `":v1"`) so a future
  *   format change can start fresh instead of misreading old data.
  * @param fallback - Initial value when nothing valid is stored.
  * @param isValid - Guard that validates what was read back.

@@ -45,7 +45,7 @@ export function runAxe(root: Element | Document = document): Promise<AxeResults>
  * Assert that an element has no accessibility violations.
  *
  * @param root - Element to audit. Defaults to the whole document.
- * @param options - Rules to skip for this check, e.g. landmark rules when
+ * @param options - Rules to skip for this check, such as landmark rules when
  *   auditing a component on its own, outside the page's landmarks.
  */
 export async function expectNoA11yViolations(

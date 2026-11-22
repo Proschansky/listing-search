@@ -7,17 +7,17 @@
  * deal with URLs or HTTP details. The response types mirror the backend's JSON
  * exactly (see the `to_dict` methods in `backend/app/models.py`).
  *
- * Resilience, in one place:
- * - **Retries with exponential backoff and jitter** for failures that are
- *   likely to be temporary: the network dropping, the API restarting (502,
- *   503, 504) and rate limiting (429, honouring the server's `Retry-After`).
- *   All calls are GETs, which are safe to repeat. A 400 or 404 is never
- *   retried: asking again won't change the answer.
- * - **Cancellation**: every call takes an `AbortSignal`; aborting also stops
- *   any pending retry wait, so a superseded search can't fire late requests.
- * - **One error type**: every failure becomes an {@link ApiError} carrying
- *   the server's error `code` and, for 500s, the `requestId` to quote in a
- *   bug report.
+ * Failures likely to be temporary are retried with exponential backoff and
+ * jitter: the network dropping, the API restarting (502, 503, 504) and rate
+ * limiting (429, honouring the server's `Retry-After`). All calls are GETs,
+ * which are safe to repeat. A 400 or 404 is never retried, because asking
+ * again won't change the answer.
+ *
+ * Every call takes an `AbortSignal`. Aborting also stops any pending retry
+ * wait, so a superseded search can't fire late requests.
+ *
+ * Every failure becomes an {@link ApiError} carrying the server's error
+ * `code` and, for 500s, the `requestId` to quote in a bug report.
  *
  * @module
  */
@@ -43,7 +43,7 @@ export const SORT_LABELS: Record<SortOption, string> = {
 
 /** One original feed record that contributed to a merged listing. */
 export interface SourceRef {
-  /** Feed the record came from, e.g. `"MLS_A"`. */
+  /** Feed the record came from, for example `"MLS_A"`. */
   source: string
   /** The record's id. Unique only within its own source. */
   id: string
@@ -92,7 +92,7 @@ export interface Pagination {
   /** Current page, starting at 1. */
   page: number
   pageSize: number
-  /** Matches across all pages, not just this one. */
+  /** Matches across all pages. */
   totalResults: number
   /** `0` when nothing matched at all. */
   totalPages: number
@@ -105,13 +105,13 @@ export interface SearchResponse {
   /** This page's results, already ranked by the API. */
   results: ListingResult[]
   pagination: Pagination
-  /** Non-fatal notes, e.g. `"No listings in city 'X'"`. */
+  /** Non-fatal notes, for example `"No listings in city 'X'"`. */
   warnings: string[]
 }
 
 /** One validation problem from a 400 response, tied to a form field. */
 export interface FieldError {
-  /** Query parameter name, e.g. `"minPrice"`. Matches the form field name. */
+  /** Query parameter name, for example `"minPrice"`. Matches the form field name. */
   field: string
   message: string
 }
@@ -140,7 +140,7 @@ export interface SearchQuery {
   maxPrice: string
   minBedrooms: string
   city: string
-  /** Comma-separated terms, e.g. `"pool, garage"`. */
+  /** Comma-separated terms, for example `"pool, garage"`. */
   keyword: string
   targetBudget: string
   /** Statuses to include. The form never lets this become empty. */
@@ -181,7 +181,7 @@ export class ApiError extends Error {
   readonly status: number
   /** Field-level validation errors from a 400 response. Empty otherwise. */
   readonly details: FieldError[]
-  /** The server's machine-readable error code, e.g. `"RATE_LIMITED"`. `"NETWORK"` if unreachable. */
+  /** The server's machine-readable error code, for example `"RATE_LIMITED"`. `"NETWORK"` if unreachable. */
   readonly code: string
   /** The server's request ID for 500s, to quote in a bug report. */
   readonly requestId?: string
@@ -250,7 +250,7 @@ export function toSearchParams(query: SearchQuery): URLSearchParams {
     if (value) params.set(key, value)
   }
 
-  // Step 2: statuses as a comma-separated list - but only if they differ
+  // Step 2: statuses as a comma-separated list, but only if they differ
   // from the backend default (just "active"), to keep URLs short and clean.
   if (query.statuses.length && !(query.statuses.length === 1 && query.statuses[0] === 'active')) {
     params.set('status', query.statuses.join(','))
@@ -388,7 +388,7 @@ function isAbort(err: unknown): boolean {
  * GET a URL and parse the JSON body, turning every failure mode into an {@link ApiError}.
  *
  * @typeParam T - Expected shape of a successful response body.
- * @param url - Path to request, e.g. `/api/v1/meta`.
+ * @param url - Path to request, for example `/api/v1/meta`.
  * @param signal - Optional abort signal for cancelling the request (and any retry wait).
  * @returns The parsed response body.
  * @throws {@link ApiError} on a network failure or a non-2xx response, once retries are used up.
@@ -400,7 +400,7 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
     const canRetry = attempt < RETRY.retries
 
     // Step 1: send the request. fetch() only rejects on network failure
-    // (server down, offline) or abort - not on HTTP error statuses.
+    // (server down, offline) or an abort. HTTP error statuses resolve normally.
     let response: Response
     try {
       response = await fetch(url, { signal, headers: { Accept: 'application/json' } })
@@ -424,7 +424,7 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
     }
 
     // Step 3: read the body as JSON. A proxy error page might be HTML, so a
-    // parse failure isn't fatal here - we still want to report the status.
+    // parse failure isn't fatal here: we still want to report the status.
     let body: unknown = null
     try {
       body = await response.json()
@@ -447,7 +447,7 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
       )
     }
 
-    // Step 5: success - hand back the parsed body with its expected type.
+    // Step 5: success. Hand back the parsed body with its expected type.
     return body as T
   }
 }

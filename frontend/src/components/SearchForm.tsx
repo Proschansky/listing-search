@@ -72,7 +72,7 @@ export function SearchForm({
   /**
    * Look up the API's error message for a field.
    *
-   * @param field - Parameter name, e.g. `"minPrice"`.
+   * @param field - Parameter name, for example `"minPrice"`.
    * @returns The message, or `undefined` if the field is valid.
    */
   const errorFor = (field: string) => fieldErrors.find((e) => e.field === field)?.message
@@ -124,11 +124,11 @@ export function SearchForm({
    *
    * @remarks
    * Sets `aria-invalid` and `aria-describedby`, so screen readers announce the
-   * error along with the field, not just the red border.
+   * error along with the field, as well as showing the red border.
    *
    * @param name - Which query field the input edits.
    * @param label - Visible label text.
-   * @param props - Extra attributes passed to the `<input>`, e.g. `type`.
+   * @param props - Extra attributes passed to the `<input>`, such as `type`.
    * @returns The label, input and optional error message.
    */
   const field = (name: TextField, label: string, props: Record<string, unknown> = {}) => {
@@ -190,7 +190,7 @@ export function SearchForm({
             </select>
             {errorFor('pageSize') && <small className={styles.fieldError}>{errorFor('pageSize')}</small>}
           </label>
-          {/* Lets you score recency as of a past date - useful because the
+          {/* Lets you score recency as of a past date, which helps because the
               sample listings are months old. */}
           {field('asOf', 'Measure recency as of', { type: 'date' })}
         </div>
