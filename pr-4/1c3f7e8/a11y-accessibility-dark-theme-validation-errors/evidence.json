@@ -1,0 +1,370 @@
+{
+  "title": "accessibility (dark theme) › validation errors",
+  "file": "e2e/a11y.spec.ts",
+  "status": "passed",
+  "dir": "a11y-accessibility-dark-theme-validation-errors",
+  "screenshots": [
+    {
+      "label": "Final state",
+      "file": "01-final-state.png"
+    }
+  ],
+  "networkImage": "network.png",
+  "network": [
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 0,
+      "durationMs": 0,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?pageSize=10",
+      "status": 0,
+      "durationMs": 0,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 200,
+      "durationMs": 372,
+      "requestId": "cacdcc5210ce42ac8510dc4476be949e",
+      "contentType": "application/json",
+      "body": {
+        "cities": [
+          "Chantilly",
+          "Fairfax",
+          "Manassas",
+          "Reston",
+          "Springfield",
+          "Vienna"
+        ],
+        "statuses": [
+          "active",
+          "pending",
+          "sold"
+        ],
+        "sortOptions": [
+          "relevance",
+          "newest",
+          "price_asc",
+          "price_desc",
+          "sqft_desc"
+        ],
+        "maxPageSize": 100,
+        "parameters": [
+          "minPrice",
+          "maxPrice",
+          "minBedrooms",
+          "city",
+          "keyword",
+          "targetBudget",
+          "status",
+          "page",
+          "pageSize",
+          "asOf",
+          "sort"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?pageSize=10",
+      "status": 200,
+      "durationMs": 1634,
+      "requestId": "3b49cfeca45d4639a2d13ac2cc94b279",
+      "contentType": "application/json",
+      "body": {
+        "results": [
+          {
+            "listingKey": "22-birch-ln-reston-va",
+            "address": "22 Birch Ln",
+            "city": "Reston",
+            "state": "VA",
+            "zip": "20190",
+            "price": 610000,
+            "bedrooms": 4,
+            "bathrooms": 3,
+            "sqft": 2100,
+            "latitude": 38.9586,
+            "longitude": -77.357,
+            "listedDate": "2026-09-03",
+            "status": "active",
+            "description": "Spacious family home near Reston Town Center. Pets welcome.",
+            "relevanceScore": 0.1612,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1612,
+              "daysOnMarket": 79
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A4",
+                "address": "22 Birch Ln",
+                "price": 610000,
+                "listedDate": "2026-09-03",
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "listingKey": "456-oak-ave-springfield-va",
+            "address": "456 Oak Ave",
+            "city": "Springfield",
+            "state": "VA",
+            "zip": "22150",
+            "price": 525000,
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "sqft": 1450,
+            "latitude": 38.7791,
+            "longitude": -77.1901,
+            "listedDate": "2026-08-30",
+            "status": "active",
+            "description": "Updated kitchen, fenced yard, close to schools.",
+            "relevanceScore": 0.1469,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1469,
+              "daysOnMarket": 83
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A2",
+                "address": "456 Oak Ave",
+                "price": 525000,
+                "listedDate": "2026-09-02",
+                "status": "active"
+              },
+              {
+                "source": "MLS_B",
+                "id": "B8",
+                "address": "456 Oak Avenue",
+                "price": 527500,
+                "listedDate": "2026-08-30",
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "listingKey": "123-main-st-unit-4b-springfield-va",
+            "address": "123 Main St, Apt 4B",
+            "city": "Springfield",
+            "state": "VA",
+            "zip": "22150",
+            "price": 450000,
+            "bedrooms": 2,
+            "bathrooms": 1.5,
+            "sqft": 980,
+            "latitude": 38.7893,
+            "longitude": -77.1873,
+            "listedDate": "2026-08-27",
+            "status": "active",
+            "description": "Bright top-floor condo near shops and transit. Pet friendly.",
+            "relevanceScore": 0.1371,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1371,
+              "daysOnMarket": 86
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A1",
+                "address": "123 Main St, Apt 4B",
+                "price": 450000,
+                "listedDate": "2026-08-29",
+                "status": "active"
+              },
+              {
+                "source": "MLS_B",
+                "id": "B7",
+                "address": "123 Main Street, Unit 4B",
+                "price": 452000,
+                "listedDate": "2026-08-27",
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "listingKey": "789-pine-rd-fairfax-va",
+            "address": "789 Pine Rd",
+            "city": "Fairfax",
+            "state": "VA",
+            "zip": "22030",
+            "price": 399000,
+            "bedrooms": 2,
+            "bathrooms": 1,
+            "sqft": 850,
+            "latitude": 38.8462,
+            "longitude": -77.3064,
+            "listedDate": "2026-08-25",
+            "status": "active",
+            "description": "Cozy starter home, no pets.",
+            "relevanceScore": 0.1309,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1309,
+              "daysOnMarket": 88
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A3",
+                "address": "789 Pine Rd",
+                "price": 399000,
+                "listedDate": "2026-09-01",
+                "status": "active"
+              },
+              {
+                "source": "MLS_B",
+                "id": "B9",
+                "address": "789 Pine Rd",
+                "price": 399500,
+                "listedDate": "2026-08-25",
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "listingKey": "100-maple-dr-reston-va",
+            "address": "100 Maple Dr",
+            "city": "Reston",
+            "state": "VA",
+            "zip": "20190",
+            "price": 585000,
+            "bedrooms": 3,
+            "bathrooms": 2.5,
+            "sqft": 1900,
+            "latitude": 38.9601,
+            "longitude": -77.3499,
+            "listedDate": "2026-08-20",
+            "status": "active",
+            "description": "Townhome with 2-car garage, community pool.",
+            "relevanceScore": 0.1166,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1166,
+              "daysOnMarket": 93
+            },
+            "sources": [
+              {
+                "source": "MLS_B",
+                "id": "B10",
+                "address": "100 Maple Dr",
+                "price": 585000,
+                "listedDate": "2026-08-20",
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "listingKey": "55-elm-ct-vienna-va",
+            "address": "55 Elm Ct",
+            "city": "Vienna",
+            "state": "VA",
+            "zip": "22180",
+            "price": 470000,
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "sqft": 1300,
+            "latitude": 38.9012,
+            "longitude": -77.2653,
+            "listedDate": "2026-08-15",
+            "status": "active",
+            "description": "Quiet cul-de-sac, walkable to Metro. No pets.",
+            "relevanceScore": 0.1039,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.1039,
+              "daysOnMarket": 98
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A5",
+                "address": "55 Elm Ct",
+                "price": 470000,
+                "listedDate": "2026-09-04",
+                "status": "active"
+              },
+              {
+                "source": "MLS_B",
+                "id": "B11",
+                "address": "55 Elm Court",
+                "price": 465000,
+                "listedDate": "2026-08-15",
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "listingKey": "300-cedar-blvd-manassas-va",
+            "address": "300 Cedar Blvd",
+            "city": "Manassas",
+            "state": "VA",
+            "zip": "20110",
+            "price": 415000,
+            "bedrooms": 3,
+            "bathrooms": 2,
+            "sqft": 1600,
+            "latitude": 38.7509,
+            "longitude": -77.4753,
+            "listedDate": "2026-08-10",
+            "status": "active",
+            "description": "Split-level home, large driveway, pets allowed.",
+            "relevanceScore": 0.0926,
+            "scoreBreakdown": {
+              "budget": null,
+              "recency": 0.0926,
+              "daysOnMarket": 103
+            },
+            "sources": [
+              {
+                "source": "MLS_A",
+                "id": "A6",
+                "address": "300 Cedar Blvd",
+                "price": 415000,
+                "listedDate": "2026-08-10",
+                "status": "active"
+              }
+            ]
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "pageSize": 10,
+          "totalResults": 7,
+          "totalPages": 1,
+          "hasPrevious": false,
+          "hasNext": false
+        },
+        "warnings": []
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?minPrice=-5&pageSize=10",
+      "status": 400,
+      "durationMs": 197,
+      "requestId": "5237d83c98f44acd83d33973232860b2",
+      "contentType": "application/json",
+      "body": {
+        "error": {
+          "code": "INVALID_PARAMETERS",
+          "message": "One or more search parameters are invalid.",
+          "details": [
+            {
+              "field": "minPrice",
+              "message": "must be 0 or greater"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

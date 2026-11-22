@@ -1,0 +1,95 @@
+{
+  "title": "accessibility (light theme) › empty results and warnings",
+  "file": "e2e/a11y.spec.ts",
+  "status": "passed",
+  "dir": "a11y-accessibility-light-theme-empty-results-and-warnings",
+  "screenshots": [
+    {
+      "label": "Final state",
+      "file": "01-final-state.png"
+    }
+  ],
+  "networkImage": "network.png",
+  "network": [
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 0,
+      "durationMs": 30,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Atlantis&pageSize=10",
+      "status": 0,
+      "durationMs": 7,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Atlantis&pageSize=10",
+      "status": 200,
+      "durationMs": 557,
+      "requestId": "66834a62546e4377b769e559e53b3e87",
+      "contentType": "application/json",
+      "body": {
+        "results": [],
+        "pagination": {
+          "page": 1,
+          "pageSize": 10,
+          "totalResults": 0,
+          "totalPages": 0,
+          "hasPrevious": false,
+          "hasNext": false
+        },
+        "warnings": [
+          "No listings in city 'Atlantis'. Cities with listings: Chantilly, Fairfax, Manassas, Reston, Springfield, Vienna."
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 200,
+      "durationMs": 563,
+      "requestId": "9d1b5f227c0a48fd9696c40a62d2afa0",
+      "contentType": "application/json",
+      "body": {
+        "cities": [
+          "Chantilly",
+          "Fairfax",
+          "Manassas",
+          "Reston",
+          "Springfield",
+          "Vienna"
+        ],
+        "statuses": [
+          "active",
+          "pending",
+          "sold"
+        ],
+        "sortOptions": [
+          "relevance",
+          "newest",
+          "price_asc",
+          "price_desc",
+          "sqft_desc"
+        ],
+        "maxPageSize": 100,
+        "parameters": [
+          "minPrice",
+          "maxPrice",
+          "minBedrooms",
+          "city",
+          "keyword",
+          "targetBudget",
+          "status",
+          "page",
+          "pageSize",
+          "asOf",
+          "sort"
+        ]
+      }
+    }
+  ]
+}

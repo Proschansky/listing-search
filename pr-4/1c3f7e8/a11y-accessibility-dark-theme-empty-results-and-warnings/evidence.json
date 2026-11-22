@@ -1,0 +1,104 @@
+{
+  "title": "accessibility (dark theme) › empty results and warnings",
+  "file": "e2e/a11y.spec.ts",
+  "status": "passed",
+  "dir": "a11y-accessibility-dark-theme-empty-results-and-warnings",
+  "screenshots": [
+    {
+      "label": "Final state",
+      "file": "01-final-state.png"
+    }
+  ],
+  "networkImage": "network.png",
+  "network": [
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 0,
+      "durationMs": 223,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Atlantis&pageSize=10",
+      "status": 0,
+      "durationMs": 45,
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 200,
+      "durationMs": 382,
+      "requestId": "8da1ba96e27141a7bcf0e726d52b38ff",
+      "contentType": "application/json",
+      "body": ""
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/meta",
+      "status": 200,
+      "durationMs": 456,
+      "requestId": "c2a599102fd84150a824b11c231c699a",
+      "contentType": "application/json",
+      "body": {
+        "cities": [
+          "Chantilly",
+          "Fairfax",
+          "Manassas",
+          "Reston",
+          "Springfield",
+          "Vienna"
+        ],
+        "statuses": [
+          "active",
+          "pending",
+          "sold"
+        ],
+        "sortOptions": [
+          "relevance",
+          "newest",
+          "price_asc",
+          "price_desc",
+          "sqft_desc"
+        ],
+        "maxPageSize": 100,
+        "parameters": [
+          "minPrice",
+          "maxPrice",
+          "minBedrooms",
+          "city",
+          "keyword",
+          "targetBudget",
+          "status",
+          "page",
+          "pageSize",
+          "asOf",
+          "sort"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "/api/v1/listings?city=Atlantis&pageSize=10",
+      "status": 200,
+      "durationMs": 426,
+      "requestId": "d7f83e61f8274622a1d6f987bc21e336",
+      "contentType": "application/json",
+      "body": {
+        "results": [],
+        "pagination": {
+          "page": 1,
+          "pageSize": 10,
+          "totalResults": 0,
+          "totalPages": 0,
+          "hasPrevious": false,
+          "hasNext": false
+        },
+        "warnings": [
+          "No listings in city 'Atlantis'. Cities with listings: Chantilly, Fairfax, Manassas, Reston, Springfield, Vienna."
+        ]
+      }
+    }
+  ]
+}
