@@ -1,15 +1,73 @@
 #!/usr/bin/env bash
-# Pre-push: the same gate CI runs - the dependency vulnerability gate, every
-# linter, every test with coverage thresholds, and the Playwright end-to-end
-# suite. Nothing that fails here should reach the remote.
+# Pre-push: the full gate, once per version of the code.
 #
-# The vulnerability gate runs first. If a runtime dependency has a fixable
-# high/critical vulnerability it stops the push, unless you type 'override'
-# and a reason at its prompt (recorded in .git/vuln-overrides.log). The prompt
-# only appears in an interactive terminal; CI can never override.
+# `make ci` runs the dependency vulnerability check, every linter, every test
+# with coverage thresholds, and the Playwright end-to-end suite. Nothing that
+# fails here should reach the remote.
+#
+# Checking each version of the code once
+# --------------------------------------
+# After the gate passes, this hook records the commit's tree hash: git's
+# fingerprint of the exact files in it, independent of commit messages,
+# authors or dates. Pushing a commit whose tree is already recorded skips the
+# gate, because those exact files have already passed. That covers re-pushing
+# after a dropped connection, pushing the same branch twice, and force-pushing
+# after only rewording commit messages.
+#
+# A tree is only recorded when the pushed commit is the one checked out and
+# the working copy has no changes, because the gate tests the files on disk.
+# Otherwise the gate still runs but records nothing, so a recorded tree never
+# vouches for code the gate didn't actually test.
+#
+# Records live in .git/checked-trees (local to this clone, never pushed).
+# Delete that file to force a full run.
+#
+# Vulnerability check: if a runtime dependency has a fixable high or critical
+# vulnerability it stops the push, unless you type 'override' and a reason at
+# its prompt (logged in .git/vuln-overrides.log). The prompt only appears in an
+# interactive terminal; CI can never override. A skipped run skips this check
+# too, which is safe: it already passed for these exact files.
 #
 # Skip with `git push --no-verify` only if you accept CI catching it instead.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+
+stamps="$(git rev-parse --git-path checked-trees)"
+touch "$stamps"
+zero=0000000000000000000000000000000000000000
+
+# Git passes one line per ref being pushed:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# Collect the trees being pushed (deletions push no code, so they're skipped).
+trees=""
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  trees="$trees $(git rev-parse "$local_sha^{tree}")"
+done
+
+# Only deleting remote branches: no code is being pushed, so nothing to check.
+[ -z "$trees" ] && exit 0
+
+unchecked=""
+for tree in $trees; do
+  grep -qx "$tree" "$stamps" || unchecked="$unchecked $tree"
+done
+
+if [ -z "$unchecked" ]; then
+  printf '\033[32mpre-push: these exact files already passed the full gate; skipping it.\033[0m\n'
+  printf '(Delete %s to force a full run.)\n' "$stamps"
+  exit 0
+fi
+
 make --no-print-directory ci
+
+# Record what was actually tested: the checked-out tree, if it's clean and is
+# one of the trees being pushed.
+head_tree="$(git rev-parse HEAD^{tree})"
+if [ -z "$(git status --porcelain)" ] && [[ " $unchecked " == *" $head_tree "* ]]; then
+  echo "$head_tree" >> "$stamps"
+  # Keep the file small: the last 200 checked trees are plenty.
+  tail -n 200 "$stamps" > "$stamps.tmp" && mv "$stamps.tmp" "$stamps"
+fi
+
 printf '\n\033[32mpre-push checks passed\033[0m\n'
