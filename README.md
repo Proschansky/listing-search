@@ -383,6 +383,13 @@ Run it by hand with `make audit`.
 
 Install the hooks once per clone with `make hooks` (or `make setup`). They're versioned in `.githooks/` and enabled with `git config core.hooksPath .githooks`.
 
+`make hooks` also changes one setting in this clone's git config (`.git/config`, never your global config): it sets `core.sshCommand` to `ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20`. Git opens its SSH connection to GitHub before the pre-push hook runs and sends the commits after it, and the full check takes a few minutes, long enough for GitHub to drop an idle connection with "the remote end hung up unexpectedly". The keepalive pings the connection every 30 seconds while the hook runs.
+
+- It's only set when no `core.sshCommand` is configured at any level. If you already have one (globally or in this repo, for example to pick an SSH key or use a wrapper tool), it's left alone and the installer prints the options to add to your own command. Running `make hooks` again changes nothing.
+- To check it: `git config --local --get core.sshCommand`
+- To remove it: `git config --local --unset core.sshCommand`. Pushes still work; long pre-push runs may drop the connection again.
+- It has no effect on HTTPS remotes.
+
 Linters: **ruff** (pycodestyle, pyflakes, isort, bugbear, pyupgrade, bandit security rules) and **mypy** for the backend; **oxlint** (correctness, React hooks, jsx-a11y accessibility rules, Vitest) with warnings as errors, **Prettier** and **tsc** for the frontend.
 
 ## Project layout
