@@ -67,5 +67,31 @@ check "8 delete-only push"              "exit=0" "exit=$(set +e; echo "(delete) 
 echo f2 > f && touch FAIL && git add f && git commit -qm four
 check "9 gate fails"                    "RAN exit=2 records=2"     "$(push HEAD)"
 
+rm FAIL
+
+# --- Documentation-only pushes skip the gate --------------------------------
+git update-ref refs/remotes/origin/main HEAD          # pretend main is here
+records_before="$(records)"
+echo "# docs" > README.md && mkdir -p docs && echo "x" > docs/guide.md
+git add README.md docs && git commit -qm docs
+check "10 docs-only, new branch"        "skipped exit=0 records=$records_before" "$(push HEAD)"
+echo "code" > app.py && echo "more" >> README.md && git add -A && git commit -qm mixed
+check "11 docs plus code"               "RAN exit=0 records=$((records_before + 1))" "$(push HEAD)"
+remote_sha="$(git rev-parse HEAD)"
+echo "even more" >> README.md && git commit -qam docs2
+push_existing() { # push HEAD to a branch the remote already has at $remote_sha
+  local out; out="$(echo "refs/heads/x $(git rev-parse HEAD) refs/heads/x $remote_sha" | bash .githooks/pre-push 2>&1)"
+  [[ "$out" == *"[make ci ran]"* ]] && echo RAN || echo skipped
+}
+check "12 docs-only update to existing branch" "skipped" "$(push_existing)"
+
+# --- Pre-commit skips linting for documentation-only commits -----------------
+cp "$(dirname "$HOOK_SRC")/pre-commit" .githooks/pre-commit
+# The fake Makefile has no lint targets, so any attempt to lint fails.
+echo "doc" >> README.md && git add README.md
+check "13 pre-commit, docs only"        "exit=0" "exit=$(set +e; bash .githooks/pre-commit >/dev/null 2>&1; echo $?)"
+echo "x = 1" >> app.py && git add app.py
+check "14 pre-commit, code staged (lints)" "exit=2" "exit=$(set +e; bash .githooks/pre-commit >/dev/null 2>&1; echo $?)"
+
 echo
 [ "$fails" -eq 0 ] && echo "ALL PASSED" || { echo "$fails FAILED"; exit 1; }

@@ -71,8 +71,8 @@ Checks run automatically at three points:
 
 | When | What runs |
 |---|---|
-| Every commit | Linters and type checks for the part of the code you changed, in seconds |
-| Every push | A dependency security check, all linters, all tests and the end-to-end tests, once per version of the code: pushing files that already passed skips the run |
+| Every commit | Linters and type checks for the part of the code you changed, in seconds. Documentation-only commits skip them. |
+| Every push | A dependency security check, all linters, all tests and the end-to-end tests, once per version of the code: pushing files that already passed, or only documentation changes, skips the run |
 | Every pull request | The same checks on GitHub Actions, which must pass before anything merges into `main` |
 
 - Test coverage must stay at 95% or above on both the backend and the frontend, or the build fails. Coverage is the share of the code that the tests exercise.
