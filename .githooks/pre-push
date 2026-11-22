@@ -22,6 +22,10 @@
 # Records live in .git/checked-trees (local to this clone, never pushed).
 # Delete that file to force a full run.
 #
+# Documentation-only pushes skip the gate too: if every file changed since
+# the remote branch (or, for a new branch, since it left origin/main) is
+# Markdown or under docs/, nothing that the gate tests can have changed.
+#
 # Vulnerability check: if a runtime dependency has a fixable high or critical
 # vulnerability it stops the push, unless you type 'override' and a reason at
 # its prompt (logged in .git/vuln-overrides.log). The prompt only appears in an
@@ -36,17 +40,44 @@ stamps="$(git rev-parse --git-path checked-trees)"
 touch "$stamps"
 zero=0000000000000000000000000000000000000000
 
+# Documentation: any Markdown file, or anything under docs/. Changing only
+# these can't break a build or a test, so they don't need the gate.
+is_docs() { grep -qE '(\.md$|^docs/)' <<<"$1"; }
+
 # Git passes one line per ref being pushed:
 #   <local ref> <local sha> <remote ref> <remote sha>
-# Collect the trees being pushed (deletions push no code, so they're skipped).
+# Collect the trees being pushed (deletions push no code, so they're skipped),
+# and note whether every pushed change is documentation.
 trees=""
-while read -r _local_ref local_sha _remote_ref _remote_sha; do
+docs_only=true
+while read -r _local_ref local_sha _remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue
   trees="$trees $(git rev-parse "$local_sha^{tree}")"
+  # What's new compared with the remote: the remote branch's current commit,
+  # or for a new branch, where it left origin/main. If neither can be found,
+  # assume code changed.
+  if [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    base="$remote_sha"
+  else
+    base="$(git merge-base "$local_sha" origin/main 2>/dev/null || true)"
+  fi
+  if [ -z "$base" ]; then
+    docs_only=false
+    continue
+  fi
+  while IFS= read -r changed; do
+    [ -z "$changed" ] && continue
+    is_docs "$changed" || docs_only=false
+  done < <(git diff --name-only "$base" "$local_sha")
 done
 
 # Only deleting remote branches: no code is being pushed, so nothing to check.
 [ -z "$trees" ] && exit 0
+
+if [ "$docs_only" = true ]; then
+  printf '\033[32mpre-push: only documentation changed; skipping the gate.\033[0m\n'
+  exit 0
+fi
 
 unchecked=""
 for tree in $trees; do

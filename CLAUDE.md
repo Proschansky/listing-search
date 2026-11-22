@@ -19,6 +19,7 @@ make setup    # install everything + git hooks
 make check    # lint + tests with coverage gates (no e2e)
 make e2e      # Playwright suite
 make ci       # audit + check + e2e: the pre-push gate (CI runs the same checks as separate jobs)
+# Docs-only changes (Markdown, docs/) skip the hooks automatically.
 make openapi  # regenerate backend/openapi.json after any API change
 ```
 

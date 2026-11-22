@@ -1,7 +1,9 @@
 """Tests for the git hooks in .githooks/.
 
-The pre-push hook is bash, so its cases live in pre_push_cases.sh, which runs
-them in a throwaway repo; this test runs that script and checks it passed.
+The hooks are bash, so their cases live in pre_push_cases.sh, which runs them
+in a throwaway repo: the pre-push gate running once per version of the code,
+skipping documentation-only pushes, and pre-commit skipping documentation-only
+commits. This test runs that script and checks it passed.
 """
 
 from __future__ import annotations
