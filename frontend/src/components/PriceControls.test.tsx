@@ -2,11 +2,14 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { LAST_STOP, PRICE_STOPS } from '../lib/price'
+import { LAST_STOP, NO_MAX, PRICE_STOPS } from '../lib/price'
 import { PriceInput, PriceRangeSlider, PriceSlider } from './PriceControls'
 
 /** The slider position (stop index) for a dollar amount on the scale. */
 const at = (price: number) => String(PRICE_STOPS.indexOf(price))
+
+/** The two-handle slider's position for a dollar amount (0 is "no min"). */
+const pos = (price: number) => String(PRICE_STOPS.indexOf(price) + 1)
 
 afterEach(cleanup)
 
@@ -115,16 +118,16 @@ describe('PriceRangeSlider', () => {
   it('starts at both ends when no range is set', () => {
     const { low, high } = setup()
     expect(low).toHaveValue('0')
-    expect(high).toHaveValue(String(LAST_STOP))
+    expect(high).toHaveValue(String(NO_MAX))
     expect(low).toHaveAttribute('aria-valuetext', 'No min')
     expect(high).toHaveAttribute('aria-valuetext', 'No max')
   })
 
   it('updates one end and keeps the other', () => {
     const { onChange, low, high } = setup('400000', '3000000')
-    fireEvent.change(low, { target: { value: at(450_000) } })
+    fireEvent.change(low, { target: { value: pos(450_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '450000', max: '3000000' })
-    fireEvent.change(high, { target: { value: at(2_500_000) } })
+    fireEvent.change(high, { target: { value: pos(2_500_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '2500000' })
   })
 
@@ -132,15 +135,15 @@ describe('PriceRangeSlider', () => {
     const { onChange, low, high } = setup('400000', '600000')
     fireEvent.change(low, { target: { value: '0' } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '', max: '600000' })
-    fireEvent.change(high, { target: { value: String(LAST_STOP) } })
+    fireEvent.change(high, { target: { value: String(NO_MAX) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '' })
   })
 
   it('stops a handle at the other one', () => {
     const { onChange, low, high } = setup('400000', '600000')
-    fireEvent.change(low, { target: { value: at(800_000) } })
+    fireEvent.change(low, { target: { value: pos(800_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '600000', max: '600000' })
-    fireEvent.change(high, { target: { value: at(100_000) } })
+    fireEvent.change(high, { target: { value: pos(100_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '400000' })
   })
 
@@ -148,38 +151,38 @@ describe('PriceRangeSlider', () => {
     // $470,000 rounds down to the $450,000 stop. Lowering the max handle must
     // stop at $470,000, or the next search would fail with min > max.
     const { onChange, high } = setup('470000', '500000')
-    fireEvent.change(high, { target: { value: at(475_000) } })
+    fireEvent.change(high, { target: { value: pos(475_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '470000', max: '475000' })
-    fireEvent.change(high, { target: { value: at(450_000) } })
+    fireEvent.change(high, { target: { value: pos(450_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '470000', max: '470000' })
   })
 
   it('never moves the minimum above a decimal maximum', () => {
     const { onChange, low, high } = setup('', '500000.50')
-    expect(high).toHaveValue(at(500_000))
+    expect(high).toHaveValue(pos(500_000))
     expect(high).toHaveAttribute('aria-valuetext', '$500,000.50')
-    fireEvent.change(low, { target: { value: at(600_000) } })
+    fireEvent.change(low, { target: { value: pos(600_000) } })
     // Before the fix the decimal max counted as "no max", so this sent 600000.
     // It stops at the exact max.
     expect(onChange).toHaveBeenLastCalledWith({ min: '500000.5', max: '500000.50' })
-    fireEvent.change(low, { target: { value: at(400_000) } })
+    fireEvent.change(low, { target: { value: pos(400_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '500000.50' })
   })
 
   it('treats an unreadable other end as no limit', () => {
     const { onChange, low } = setup('', 'abc')
-    fireEvent.change(low, { target: { value: at(600_000) } })
+    fireEvent.change(low, { target: { value: pos(600_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '600000', max: 'abc' })
   })
 
   it('lets a dragged handle pass the other one, swapping the ends', () => {
     const { onChange, high } = setup('500000', '500000')
     fireEvent.pointerDown(high)
-    fireEvent.change(high, { target: { value: at(400_000) } })
+    fireEvent.change(high, { target: { value: pos(400_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '400000', max: '500000' })
     // Once the pointer is up, keyboard rules apply again: no passing.
     fireEvent.pointerUp(window)
-    fireEvent.change(high, { target: { value: at(400_000) } })
+    fireEvent.change(high, { target: { value: pos(400_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000' })
   })
 
@@ -187,14 +190,29 @@ describe('PriceRangeSlider', () => {
     const { onChange, low } = setup('500000', '500000')
     fireEvent.pointerDown(low)
     fireEvent.pointerCancel(window)
-    fireEvent.change(low, { target: { value: at(700_000) } })
+    fireEvent.change(low, { target: { value: pos(700_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '500000', max: '500000' })
+  })
+
+  it('keeps a typed maximum of $50M or more off the "no max" end, so dragging there clears it', () => {
+    const { onChange, high } = setup('', '60000000')
+    expect(high).toHaveValue(String(NO_MAX - 1))
+    expect(high).toHaveAttribute('aria-valuetext', '$60,000,000')
+    fireEvent.change(high, { target: { value: String(NO_MAX) } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '', max: '' })
+  })
+
+  it('keeps a typed minimum of $0 off the "no min" end, so dragging there clears it', () => {
+    const { onChange, low } = setup('0', '')
+    expect(low).toHaveValue('1')
+    fireEvent.change(low, { target: { value: '0' } })
+    expect(onChange).toHaveBeenLastCalledWith({ min: '', max: '' })
   })
 
   it('keeps a typed maximum above its range when the low handle moves', () => {
     const { onChange, low, high } = setup('', '80000000')
-    expect(high).toHaveValue(String(LAST_STOP))
-    fireEvent.change(low, { target: { value: at(300_000) } })
+    expect(high).toHaveValue(String(NO_MAX - 1))
+    fireEvent.change(low, { target: { value: pos(300_000) } })
     expect(onChange).toHaveBeenLastCalledWith({ min: '300000', max: '80000000' })
   })
 })

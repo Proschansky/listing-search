@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, moveHandle, stopFor } from './price'
+import {
+  LAST_STOP,
+  NO_MAX,
+  NO_MIN,
+  PRICE_STOPS,
+  amountOf,
+  cleanPrice,
+  formatPrice,
+  moveHandle,
+  rangePosition,
+  stopFor,
+} from './price'
 
 describe('cleanPrice', () => {
   it.each([
@@ -99,7 +110,7 @@ describe('amountOf', () => {
 })
 
 describe('moveHandle', () => {
-  const at = (price: number) => PRICE_STOPS.indexOf(price)
+  const at = (price: number) => PRICE_STOPS.indexOf(price) + 1 // range position
 
   describe('keyboard (no anchor)', () => {
     it('moves one end and keeps the other', () => {
@@ -111,8 +122,8 @@ describe('moveHandle', () => {
     })
 
     it('clears an end moved all the way out', () => {
-      expect(moveHandle('low', 0, { min: '400000', max: '600000' })).toEqual({ min: '', max: '600000' })
-      expect(moveHandle('high', LAST_STOP, { min: '400000', max: '600000' })).toEqual({ min: '400000', max: '' })
+      expect(moveHandle('low', NO_MIN, { min: '400000', max: '600000' })).toEqual({ min: '', max: '600000' })
+      expect(moveHandle('high', NO_MAX, { min: '400000', max: '600000' })).toEqual({ min: '400000', max: '' })
     })
 
     it('stops at the exact amount at the other end', () => {
@@ -129,7 +140,7 @@ describe('moveHandle', () => {
     it('stops at the minimum instead of clearing the maximum near the top', () => {
       // A $60M max sits on the last stop. One step left asks for $49M, below
       // the $50M min: the max stops at $50M rather than becoming "no max".
-      expect(moveHandle('high', LAST_STOP - 1, { min: '50000000', max: '60000000' })).toEqual({
+      expect(moveHandle('high', at(49_000_000), { min: '50000000', max: '60000000' })).toEqual({
         min: '50000000',
         max: '50000000',
       })
@@ -153,16 +164,30 @@ describe('moveHandle', () => {
 
     it('swaps the ends when the low handle passes the high one', () => {
       expect(moveHandle('low', at(700_000), range, '500000')).toEqual({ min: '500000', max: '700000' })
-      expect(moveHandle('low', LAST_STOP, range, '500000')).toEqual({ min: '500000', max: '' })
+      expect(moveHandle('low', NO_MAX, range, '500000')).toEqual({ min: '500000', max: '' })
     })
 
     it('swaps the ends when the high handle passes the low one', () => {
-      expect(moveHandle('high', 0, range, '500000')).toEqual({ min: '', max: '500000' })
+      expect(moveHandle('high', NO_MIN, range, '500000')).toEqual({ min: '', max: '500000' })
     })
 
     it('treats a blank anchor as the open end, which can not be passed', () => {
-      expect(moveHandle('low', LAST_STOP, { min: '', max: '' }, '')).toEqual({ min: '50000000', max: '' })
-      expect(moveHandle('high', 0, { min: '', max: '' }, '')).toEqual({ min: '', max: '0' })
+      expect(moveHandle('low', NO_MAX, { min: '', max: '' }, '')).toEqual({ min: '50000000', max: '' })
+      expect(moveHandle('high', NO_MIN, { min: '', max: '' }, '')).toEqual({ min: '', max: '0' })
     })
+  })
+})
+
+describe('rangePosition', () => {
+  it('keeps the ends for "no limit"', () => {
+    expect(rangePosition('', 'min')).toBe(NO_MIN)
+    expect(rangePosition('', 'max')).toBe(NO_MAX)
+    expect(rangePosition('abc', 'max')).toBe(NO_MAX)
+  })
+
+  it('puts typed amounts on the stops between the ends, never on them', () => {
+    expect(rangePosition('0', 'min')).toBe(NO_MIN + 1)
+    expect(rangePosition('500000', 'max')).toBe(PRICE_STOPS.indexOf(500_000) + 1)
+    expect(rangePosition('60000000', 'max')).toBe(NO_MAX - 1)
   })
 })

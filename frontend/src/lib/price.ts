@@ -137,13 +137,49 @@ export interface PriceRange {
 }
 
 /**
- * The range after one handle of the two-handle slider moves to a stop.
+ * Positions on the two-handle slider.
  *
  * @remarks
- * The far left of the low handle means "no minimum" and the far right of the
- * high handle means "no maximum". These are read from the stop the user
- * asked for, before any limit is applied, so a step left from the far right
- * never turns into "no maximum".
+ * The ends are kept for "no limit": position 0 is "no minimum", positions 1
+ * to `PRICE_STOPS.length` are the price stops ($0 to $50,000,000), and the
+ * last position is "no maximum". Giving the unset ends their own positions
+ * means a typed amount never sits where "unset" does. A $60,000,000 max sits
+ * on the $50,000,000 stop, one step in from "no max", so dragging the handle
+ * to the end clears it.
+ */
+export const NO_MIN = 0
+/** See {@link NO_MIN}. */
+export const NO_MAX = PRICE_STOPS.length + 1
+
+/**
+ * Where a range handle sits for a query value.
+ *
+ * @param raw - The query value.
+ * @param end - Which end this is; blank or unreadable values go to its open end.
+ * @returns A position from {@link NO_MIN} to {@link NO_MAX}.
+ */
+export function rangePosition(raw: string, end: 'min' | 'max'): number {
+  if (amountOf(raw) === undefined) return end === 'min' ? NO_MIN : NO_MAX
+  return stopFor(raw, 0) + 1
+}
+
+/**
+ * The price at a range position. The open ends count as the nearest stop.
+ *
+ * @param position - A range position.
+ * @returns A dollar amount from {@link PRICE_STOPS}.
+ */
+function priceAt(position: number): number {
+  return PRICE_STOPS[Math.min(Math.max(position - 1, 0), LAST_STOP)]
+}
+
+/**
+ * The range after one handle of the two-handle slider moves.
+ *
+ * @remarks
+ * The handle's own end ("no minimum" for the low handle, "no maximum" for
+ * the high one) is read from the position the user asked for, before any
+ * limit is applied, so a step in from the end never turns into "no limit".
  *
  * How the handles meet depends on how they're moved:
  * - With the keyboard (no `anchor`), a handle stops at the other end's exact
@@ -155,19 +191,20 @@ export interface PriceRange {
  *   grabbed.
  *
  * @param handle - Which handle moved.
- * @param stop - The stop it moved to (an index into {@link PRICE_STOPS}).
+ * @param position - The range position it moved to.
  * @param range - The range before the move.
  * @param anchor - During a pointer drag, the other end's value at the start.
  * @returns The new range.
  */
-export function moveHandle(handle: 'low' | 'high', stop: number, range: PriceRange, anchor?: string): PriceRange {
-  // The value at this stop, as a minimum or as a maximum.
-  const asMin = stop === 0 ? '' : String(PRICE_STOPS[stop])
-  const asMax = stop === LAST_STOP ? '' : String(PRICE_STOPS[stop])
+export function moveHandle(handle: 'low' | 'high', position: number, range: PriceRange, anchor?: string): PriceRange {
+  // The value at this position, as a minimum or as a maximum.
+  const price = priceAt(position)
+  const asMin = position === NO_MIN ? '' : String(price)
+  const asMax = position === NO_MAX ? '' : String(price)
 
   // Pointer drag: the dragged end may cross the anchor, swapping the ends.
   if (anchor !== undefined) {
-    const at = PRICE_STOPS[stop]
+    const at = position === NO_MIN ? -Infinity : position === NO_MAX ? Infinity : price
     if (handle === 'low') {
       const limit = amountOf(anchor) ?? Infinity
       return at > limit ? { min: anchor, max: asMax } : { min: asMin, max: anchor }
@@ -180,9 +217,9 @@ export function moveHandle(handle: 'low' | 'high', stop: number, range: PriceRan
   if (handle === 'low') {
     if (asMin === '') return { min: '', max: range.max }
     const cap = amountOf(range.max)
-    return { min: String(cap === undefined ? PRICE_STOPS[stop] : Math.min(PRICE_STOPS[stop], cap)), max: range.max }
+    return { min: String(cap === undefined ? price : Math.min(price, cap)), max: range.max }
   }
   if (asMax === '') return { min: range.min, max: '' }
   const floor = amountOf(range.min)
-  return { min: range.min, max: String(floor === undefined ? PRICE_STOPS[stop] : Math.max(PRICE_STOPS[stop], floor)) }
+  return { min: range.min, max: String(floor === undefined ? price : Math.max(price, floor)) }
 }

@@ -20,7 +20,17 @@
 
 import { useRef, useState, type CSSProperties, type InputHTMLAttributes } from 'react'
 import { cx } from '../lib/cx'
-import { LAST_STOP, PRICE_STOPS, amountOf, cleanPrice, formatPrice, moveHandle, stopFor } from '../lib/price'
+import {
+  LAST_STOP,
+  NO_MAX,
+  PRICE_STOPS,
+  amountOf,
+  cleanPrice,
+  formatPrice,
+  moveHandle,
+  rangePosition,
+  stopFor,
+} from '../lib/price'
 import styles from './PriceControls.module.scss'
 
 /** Props for {@link PriceInput}. */
@@ -101,21 +111,23 @@ interface PriceSliderProps {
 }
 
 /**
- * The attributes every price slider shares. The input's value is a stop
- * index, not dollars; `aria-valuetext` tells screen readers the amount.
+ * The attributes every price slider shares. The input's value is a position
+ * on the slider, not dollars; `aria-valuetext` tells screen readers the
+ * amount.
  *
- * @param stop - The current stop index.
+ * @param position - The current position.
+ * @param last - The highest position.
  * @param raw - The query value, read out as dollars.
  * @param blank - Read out when the value is blank.
  * @returns Props for a range `<input>`.
  */
-function rangeProps(stop: number, raw: string, blank: string) {
+function rangeProps(position: number, last: number, raw: string, blank: string) {
   return {
     type: 'range',
     min: 0,
-    max: LAST_STOP,
+    max: last,
     step: 1,
-    value: stop,
+    value: position,
     'aria-valuetext': valueText(raw, blank),
   } as const
 }
@@ -129,9 +141,9 @@ function rangeProps(stop: number, raw: string, blank: string) {
 export function PriceSlider({ label, value, onChange, blankText }: PriceSliderProps) {
   const at = stopFor(value, 0)
   return (
-    <div className={styles.track} style={fill(0, at)}>
+    <div className={styles.track} style={fill(0, at, LAST_STOP)}>
       <input
-        {...rangeProps(at, value, blankText)}
+        {...rangeProps(at, LAST_STOP, value, blankText)}
         className={styles.range}
         aria-label={label}
         onChange={(e) => {
@@ -160,15 +172,16 @@ interface PriceRangeSliderProps {
  * It's two native range inputs laid over one track, so each handle keeps the
  * browser's keyboard support and is its own labelled control. The left handle
  * all the way left means "no minimum"; the right handle all the way right
- * means "no maximum". {@link moveHandle} decides the new range: keyboard
+ * means "no maximum". Those end positions are only ever "unset" (see
+ * `NO_MIN` in `lib/price.ts`). {@link moveHandle} decides the new range: keyboard
  * steps stop at the other handle, while a mouse or touch drag may pass it.
  *
  * @param props - See {@link PriceRangeSliderProps}.
  * @returns The slider.
  */
 export function PriceRangeSlider({ min, max, onChange }: PriceRangeSliderProps) {
-  const lo = stopFor(min, 0)
-  const hi = stopFor(max, LAST_STOP)
+  const lo = rangePosition(min, 'min')
+  const hi = rangePosition(max, 'max')
   // The other end's value when a pointer drag started (see moveHandle).
   const drag = useRef<string | undefined>(undefined)
 
@@ -189,16 +202,16 @@ export function PriceRangeSlider({ min, max, onChange }: PriceRangeSliderProps) 
   }
 
   return (
-    <div className={cx(styles.track, styles.dual)} style={fill(lo, hi)}>
+    <div className={cx(styles.track, styles.dual)} style={fill(lo, hi, NO_MAX)}>
       <input
-        {...rangeProps(lo, min, 'No min')}
+        {...rangeProps(lo, NO_MAX, min, 'No min')}
         className={styles.range}
         aria-label="Lowest price"
         onPointerDown={() => startDrag(max)}
         onChange={(e) => onChange(moveHandle('low', Number(e.target.value), { min, max }, drag.current))}
       />
       <input
-        {...rangeProps(hi, max, 'No max')}
+        {...rangeProps(hi, NO_MAX, max, 'No max')}
         className={styles.range}
         aria-label="Highest price"
         onPointerDown={() => startDrag(min)}
@@ -209,12 +222,13 @@ export function PriceRangeSlider({ min, max, onChange }: PriceRangeSliderProps) 
 }
 
 /**
- * CSS variables that colour the track between two stops.
+ * CSS variables that colour the track between two positions.
  *
- * @param from - Stop where the filled part starts.
- * @param to - Stop where it ends.
+ * @param from - Position where the filled part starts.
+ * @param to - Position where it ends.
+ * @param last - The slider's highest position.
  * @returns Inline style with `--from` and `--to` as percentages.
  */
-function fill(from: number, to: number): CSSProperties {
-  return { '--from': `${(from / LAST_STOP) * 100}%`, '--to': `${(to / LAST_STOP) * 100}%` } as CSSProperties
+function fill(from: number, to: number, last: number): CSSProperties {
+  return { '--from': `${(from / last) * 100}%`, '--to': `${(to / last) * 100}%` } as CSSProperties
 }

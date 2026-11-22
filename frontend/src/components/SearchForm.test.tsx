@@ -80,8 +80,10 @@ describe('SearchForm', () => {
   it('sets the price range and the target budget from the sliders', () => {
     const { onChange } = renderForm({ value: { ...EMPTY_QUERY, city: 'Vienna' } })
     const at = (price: number) => String(PRICE_STOPS.indexOf(price))
-    fireEvent.change(screen.getByRole('slider', { name: 'Lowest price' }), { target: { value: at(400_000) } })
-    fireEvent.change(screen.getByRole('slider', { name: 'Highest price' }), { target: { value: at(2_000_000) } })
+    // The range slider's position 0 is "no min", so its stops start at 1.
+    const pos = (price: number) => String(PRICE_STOPS.indexOf(price) + 1)
+    fireEvent.change(screen.getByRole('slider', { name: 'Lowest price' }), { target: { value: pos(400_000) } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Highest price' }), { target: { value: pos(2_000_000) } })
     fireEvent.change(screen.getByRole('slider', { name: 'Budget' }), { target: { value: at(750_000) } })
     expect(lastChange(onChange)).toMatchObject({
       city: 'Vienna',
