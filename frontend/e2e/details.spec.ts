@@ -59,6 +59,10 @@ test.describe('map view', () => {
     const markers = map.locator('path.leaflet-interactive')
     await expect(markers).toHaveCount(7)
     await evidence.capture('Map view')
+    // Centre the map in the window first, so every probe point below is on
+    // screen. elementFromPoint returns null off screen, which would pass
+    // without testing anything.
+    await map.evaluate((el) => el.scrollIntoView({ block: 'center' }))
     await markers.first().click({ force: true })
     await expect(page.getByRole('dialog')).toBeVisible()
     await evidence.capture('Drawer over the map')
@@ -68,18 +72,24 @@ test.describe('map view', () => {
     // check what's on top at points across the map, including its right edge
     // (under the drawer panel) and the zoom controls.
     const box = await map.boundingBox()
-    if (!box) throw new Error('map has no box')
+    const viewport = page.viewportSize()
+    if (!box || !viewport) throw new Error('map or window has no size')
     const points = [
       [box.x + 30, box.y + 30], // zoom controls
       [box.x + box.width / 2, box.y + box.height / 2],
       [box.x + box.width - 10, box.y + box.height / 2],
     ]
     for (const [x, y] of points) {
-      const onTop = await page.evaluate(
-        ([px, py]) => !!document.elementFromPoint(px, py)?.closest('.leaflet-container'),
+      expect(x >= 0 && y >= 0 && x < viewport.width && y < viewport.height, `(${x}, ${y}) is off screen`).toBe(true)
+      const hit = await page.evaluate(
+        ([px, py]) => {
+          const el = document.elementFromPoint(px, py)
+          return el ? { inMap: !!el.closest('.leaflet-container') } : null
+        },
         [x, y],
       )
-      expect(onTop, `map painted above the drawer at (${x}, ${y})`).toBe(false)
+      expect(hit, `nothing at (${x}, ${y})`).not.toBeNull()
+      expect(hit!.inMap, `map painted above the drawer at (${x}, ${y})`).toBe(false)
     }
   })
 
