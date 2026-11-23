@@ -37,7 +37,7 @@ Recency halves every 30 days a home is on the market:
 
 A smooth curve avoids the sudden drop a cutoff such as "listed in the last 14 days" would cause. It never goes below zero, and its single setting is easy to tune. A listing dated in the future counts as 0 days on market, so its score can't go above 1.
 
-Days on market are counted from `asOf`, which defaults to today. The sample data is a few months old, so today its recency values are small and close together. The order is still right, and `asOf` (also under "Advanced" in the app) reproduces scores as they would have been when the homes were listed. The tests set `asOf` to a fixed date, so they give the same results on any day.
+Days on market are counted from `asOf`, which defaults to today. The sample data is a few months old, so today its recency values are small and close together. The order is still right, and `asOf` reproduces scores as they would have been when the homes were listed. The tests set `asOf` to a fixed date, so they give the same results on any day. The app has no input for it, because shoppers never need it; add `?asOf=YYYY-MM-DD` to the page URL to try it.
 
 ### Ties
 

@@ -296,7 +296,7 @@ export default function App() {
           </div>
           <div className={styles.brand}>
             <h1>Listing Search</h1>
-            <p>Deduplicated MLS listings, ranked by budget fit and recency</p>
+            <p>Find your next home based on what you find important</p>
           </div>
           <SegmentedControl<ThemePreference>
             label="Colour theme"

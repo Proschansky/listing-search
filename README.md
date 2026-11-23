@@ -4,11 +4,11 @@ Listing Search finds homes for sale across several MLS feeds and shows each home
 
 It's a full-stack web app built for a software engineering assessment. It combines a small bundled sample of 12 listings with about 80 more from SimplyRETS, a free live MLS feed, and it's built and tested the way a production service would be.
 
-![Search results in the light theme](docs/images/results.png)
+![Search results ranked against a $500,000 target budget. Each card shows its score and the budget fit and recency behind it.](docs/images/results.png)
 
 ## What you can do with it
 
-- Search by price range, bedrooms, city, keywords and status (active, pending, sold).
+- Search by price range, bedrooms, city, keywords and status (active, pending, sold). Type a price ("1,250,000") or drag a slider. The sliders reach $50 million, in steps that get bigger as prices rise.
 - Set a target budget to rank homes by how close their price is to it.
 - See why each home ranked where it did. Every result shows its score and the two things behind it: budget fit and how new the listing is.
 - Switch between a list of cards and a map.
@@ -17,6 +17,22 @@ It's a full-stack web app built for a software engineering assessment. It combin
 - Save searches and rerun them later.
 - Share any view as a link. The search, sort, page and open listing are all in the URL.
 - Use it with a keyboard or screen reader, in light or dark mode, on a phone or a desktop.
+
+Dragging a price handle fills in the box above it, and typing an amount moves the handle:
+
+![Dragging the maximum and minimum price handles, then typing 650000 as the target budget, which shows as 650,000 once the box loses focus](docs/images/price.gif)
+
+Click any home to see why it ranked where it did. This one scored 0.717: its $470,000 price is close to the $500,000 target, and it had been on the market for three weeks. Two MLS feeds listed it, one as "55 Elm Ct" and one as "55 Elm Court", and the app shows it once.
+
+![Clicking the 55 Elm Ct card in dark mode opens the detail panel with its facts, the score breakdown and both feeds' records](docs/images/details.gif)
+
+The map shows the same results, and clicking a marker opens the same panel.
+
+![Switching the results to a map of northern Virginia and clicking a marker, which opens the detail panel for 123 Main St](docs/images/map.gif)
+
+On a phone, each card leads with the price and score, the two things people scan for.
+
+<img src="docs/images/phone.png" alt="The results on a phone in dark mode: price and score first, then the address" width="320">
 
 ## Run it
 
@@ -53,7 +69,11 @@ The API loads listings from each data source, checks every record and merges dup
 
 The score is 70% budget fit and 30% recency. A home priced at your target budget gets full marks for fit, and the mark falls to zero once the price is 25% away. Recency halves every 30 days a home spends on the market. Without a target budget, homes rank by recency alone. [Ranking and duplicates](docs/ranking.md) explains the formulas and the reasons behind them.
 
-The API is versioned (`/api/v1`). Bad input gets a single error response that lists every problem at once, so the app can highlight all the wrong fields together. [The API reference](docs/api.md) lists every endpoint and parameter.
+The API is versioned (`/api/v1`). Bad input gets a single error response that lists every problem at once, so the app can highlight all the wrong fields together:
+
+![Two errors shown at once: the minimum price is above the maximum, and bedrooms is negative](docs/images/validation.png)
+
+The browser doesn't check any of this itself. Every rule lives in the API, so the app and anyone calling the API directly get the same answers. [The API reference](docs/api.md) lists every endpoint and parameter.
 
 ## Data sources
 
