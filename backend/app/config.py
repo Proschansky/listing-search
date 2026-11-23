@@ -26,10 +26,21 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .repository import DEFAULT_DATA_PATH
+
+# Where the last good SimplyRETS download is kept (git-ignored).
+DEFAULT_SIMPLYRETS_CACHE = Path(__file__).resolve().parent.parent / ".cache" / "simplyrets.json"
+
+
+SourceName = Literal["sample", "simplyrets"]
+
+
+def _sample_only() -> list[SourceName]:
+    """The default source list: just the bundled sample."""
+    return ["sample"]
 
 
 class Settings(BaseSettings):
@@ -50,7 +61,38 @@ class Settings(BaseSettings):
     # --- Data ---------------------------------------------------------------
     listings_path: Path = Field(
         default=DEFAULT_DATA_PATH,
-        description="JSON feed file to load at startup. Defaults to the bundled sample data.",
+        description="JSON feed file the sample source loads. Defaults to the bundled sample data.",
+    )
+    sources: list[SourceName] = Field(
+        default_factory=lambda: _sample_only(),
+        description=(
+            "Which listing sources to load, as a JSON list. 'sample' is the bundled file; "
+            "'simplyrets' is the SimplyRETS live feed. start.sh and docker-compose turn both on."
+        ),
+    )
+
+    # --- SimplyRETS feed (only used when "simplyrets" is in sources) ---------
+    simplyrets_url: str = Field(
+        default="https://api.simplyrets.com/properties",
+        description="SimplyRETS properties endpoint.",
+    )
+    # The defaults are SimplyRETS's public demo login. SecretStr keeps them
+    # out of logs and error messages; a real account would be set by env var.
+    simplyrets_username: SecretStr = SecretStr("simplyrets")
+    simplyrets_password: SecretStr = SecretStr("simplyrets")
+    simplyrets_timeout_seconds: float = Field(
+        default=5.0,
+        gt=0,
+        description="Time limit for each request to SimplyRETS.",
+    )
+    simplyrets_refresh_minutes: float = Field(
+        default=15.0,
+        gt=0,
+        description="How often a running service downloads the feed again.",
+    )
+    simplyrets_cache_path: Path = Field(
+        default=DEFAULT_SIMPLYRETS_CACHE,
+        description="Last good download, used when SimplyRETS can't be reached.",
     )
 
     # --- Logging ------------------------------------------------------------

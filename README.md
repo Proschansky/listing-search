@@ -2,7 +2,7 @@
 
 Listing Search finds homes for sale across several MLS feeds and shows each home once, ranked by how well it fits your budget and how recently it was listed. MLS feeds are the listing databases real estate agents publish to, and the same home often appears in more than one.
 
-It's a full-stack web app built for a software engineering assessment. It runs on a small bundled sample of 12 listings, but it's built and tested the way a production service would be.
+It's a full-stack web app built for a software engineering assessment. It combines a small bundled sample of 12 listings with about 80 more from SimplyRETS, a free live MLS feed, and it's built and tested the way a production service would be.
 
 ![Search results ranked against a $500,000 target budget. Each card shows its score and the budget fit and recency behind it.](docs/images/results.png)
 
@@ -12,7 +12,7 @@ It's a full-stack web app built for a software engineering assessment. It runs o
 - Set a target budget to rank homes by how close their price is to it.
 - See why each home ranked where it did. Every result shows its score and the two things behind it: budget fit and how new the listing is.
 - Switch between a list of cards and a map.
-- Open any home for full details, including how each MLS feed described it.
+- Open any home for full details and photos, including how each MLS feed described it.
 - Sort by best match, newest, price or size.
 - Save searches and rerun them later.
 - Share any view as a link. The search, sort, page and open listing are all in the URL.
@@ -50,7 +50,7 @@ To run it the way it would run in production, with Docker:
 docker compose up --build    # then open http://localhost:8080
 ```
 
-Other ways to run it, and every command, are in [the engineering guide](docs/engineering.md#run-it-other-ways).
+Both load the sample data and the SimplyRETS feed. To run offline on the sample alone, start with `LISTING_SOURCES='["sample"]'`. Other ways to run it, and every command, are in [the engineering guide](docs/engineering.md#run-it-other-ways).
 
 ## How it works
 
@@ -61,10 +61,11 @@ flowchart LR
   B[Browser<br/>React app] -- "/api/v1 requests" --> A[API<br/>FastAPI]
   A --> S[Search<br/>filter · score · sort · page]
   S --> D[(Merged listings<br/>in memory)]
-  F[(MLS feed files)] -- "loaded and de-duplicated<br/>once at startup" --> D
+  F[(Bundled sample file)] -- "loaded and de-duplicated" --> D
+  L[(SimplyRETS API)] -- "downloaded every 15 minutes" --> D
 ```
 
-When the API starts, it reads the feed files, checks every record and merges duplicates, so the 12 sample records become 8 homes. Two records count as the same home when their addresses match after cleanup ("Street" and "St" count as the same) and they sit within 200 meters of each other. Each search then filters those homes, scores them, sorts them and returns one page of results.
+The API loads listings from each data source, checks every record and merges duplicates. The 12 sample records become 8 homes, because several feeds list the same house. Two records count as the same home when their addresses match after cleanup ("Street" and "St" count as the same) and they sit within 200 meters of each other. Each search then filters those homes, scores them, sorts them and returns one page of results.
 
 The score is 70% budget fit and 30% recency. A home priced at your target budget gets full marks for fit, and the mark falls to zero once the price is 25% away. Recency halves every 30 days a home spends on the market. Without a target budget, homes rank by recency alone. [Ranking and duplicates](docs/ranking.md) explains the formulas and the reasons behind them.
 
@@ -73,6 +74,17 @@ The API is versioned (`/api/v1`). Bad input gets a single error response that li
 ![Two errors shown at once: the minimum price is above the maximum, and bedrooms is negative](docs/images/validation.png)
 
 The browser doesn't check any of this itself. Every rule lives in the API, so the app and anyone calling the API directly get the same answers. [The API reference](docs/api.md) lists every endpoint and parameter.
+
+## Data sources
+
+The app has two sources of listings, set with `LISTING_SOURCES`:
+
+- `sample`: 12 hand-written records in `backend/data/sample_listings.json`, spread across two made-up MLS feeds so duplicate merging has something to do. On by default.
+- `simplyrets`: the [SimplyRETS](https://simplyrets.com) demo API. It's a real HTTP service in MLS format, with about 80 made-up listings and photos around Houston, Texas. It uses the public demo login, so it needs no account or key. `start.sh` and Docker switch it on; tests don't, so they never need the internet.
+
+SimplyRETS is someone else's service, so the app expects it to fail sometimes. The API starts at once on the sample data and the last saved SimplyRETS download, then fetches fresh data in the background and again every 15 minutes. Brief failures are retried. If SimplyRETS stays down, the app keeps serving the last good download and `/api/v1/health/ready` reports the source as `degraded`. After three failures in a row it stops calling SimplyRETS for five minutes (a circuit breaker), so a dead API isn't hit on every refresh. Searches keep working throughout.
+
+`make live-check` makes one real call to SimplyRETS to confirm the feed still loads. CI doesn't run it, because an outage at SimplyRETS shouldn't break our build.
 
 ## Built for production
 
@@ -122,10 +134,7 @@ The screenshots are stored on a separate branch in the repository called `pr-evi
 
 ## What's next
 
-The bundled sample stays the default. Two live data sources could plug in behind the same loading code:
-
-- The SimplyRETS demo API, a free live feed in MLS format. Its listings are made up, so it's best for testing a real network connection and duplicate matching across sources.
-- The Kaggle "USA Real Estate Dataset", about 2.2 million real listings. Its license is unclear, so it would be downloaded by a script rather than stored in the repository.
+Another source plugs in the same way SimplyRETS did: one module that turns its records into the app's feed format. The Kaggle "USA Real Estate Dataset", about 2.2 million real listings, is the next candidate. Its license is unclear, so it would be downloaded by a script rather than stored in the repository, and at that size the in-memory list would give way to a database.
 
 ## More documentation
 

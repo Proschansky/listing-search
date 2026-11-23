@@ -7,9 +7,10 @@
  * Nothing is mocked, except that OpenStreetMap map tiles are blocked so tests
  * never depend on the internet (see `e2e/fixtures.ts`).
  *
- * `webServer` starts both servers before the tests and stops them after. They
- * use their own ports (API 8100, UI 5180), so the suite can run while a dev
- * server is up on the usual 8000/5173. With `reuseExistingServer`, a server
+ * `webServer` starts the servers before the tests and stops them after. They
+ * use their own ports (API 8100, UI 5180, and a second API on 8101 for the
+ * data-sources spec), so the suite can run while a dev server is up on the
+ * usual 8000/5173. With `reuseExistingServer`, a server
  * already listening on those ports is reused locally (faster iterations) but
  * never in CI.
  *
@@ -26,6 +27,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const API_PORT = 8100
+// A second API with the SimplyRETS source switched on, for e2e/sources.spec.ts.
+// It's offline: SimplyRETS's URL points at a closed port, so it serves a
+// saved snapshot (a hand-written test fixture) and reports itself degraded.
+export const SOURCES_API_PORT = 8101
 const UI_PORT = 5180
 const isCI = Boolean(process.env.CI)
 const channel = process.env.PW_CHANNEL ?? (isCI ? 'chromium' : 'chrome')
@@ -70,6 +75,22 @@ export default defineConfig({
       cwd: '../backend',
       url: `http://127.0.0.1:${API_PORT}/api/v1/health/ready`,
       env: { LISTING_RATE_LIMIT_ENABLED: 'false', LISTING_ENVIRONMENT: 'test' },
+      reuseExistingServer: !isCI,
+      timeout: 60_000,
+    },
+    {
+      // Sample data plus SimplyRETS, with no internet needed (see SOURCES_API_PORT).
+      command: `../backend/.venv/bin/uvicorn app.main:app --port ${SOURCES_API_PORT}`,
+      cwd: '../backend',
+      url: `http://127.0.0.1:${SOURCES_API_PORT}/api/v1/health/ready`,
+      env: {
+        LISTING_RATE_LIMIT_ENABLED: 'false',
+        LISTING_ENVIRONMENT: 'test',
+        LISTING_SOURCES: '["sample","simplyrets"]',
+        LISTING_SIMPLYRETS_URL: 'http://127.0.0.1:9/properties',
+        LISTING_SIMPLYRETS_TIMEOUT_SECONDS: '0.5',
+        LISTING_SIMPLYRETS_CACHE_PATH: 'tests/fixtures/simplyrets_snapshot.json',
+      },
       reuseExistingServer: !isCI,
       timeout: 60_000,
     },

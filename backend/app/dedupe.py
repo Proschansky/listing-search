@@ -155,6 +155,10 @@ def _merge_group(key: str, group: list[Listing]) -> MergedListing:
         # Join every feed's description so a keyword that only one feed
         # mentions (e.g. "renovated" in MLS_B only) still finds the home.
         search_text=" \n ".join(r.description for r in ordered),
+        # Photos from the freshest record, or else from the first record
+        # (in stable order) that has any, so a feed without photos can't hide
+        # another feed's photos of the same home.
+        photos=primary.photos or next((r.photos for r in ordered if r.photos), ()),
         # Keep a reference to every original record for traceability.
         sources=tuple(
             SourceRef(

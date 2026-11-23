@@ -38,6 +38,25 @@ VALID_STATUSES = frozenset({"active", "pending", "sold"})
 SORT_OPTIONS = ("relevance", "newest", "price_asc", "price_desc", "sqft_desc")
 
 
+def _photo_urls(value: Any) -> tuple[str, ...]:
+    """Keep only usable photo URLs from a feed's ``photos`` value.
+
+    Photos are optional, so a missing or malformed value gives no photos
+    rather than rejecting the whole record. Only ``https`` URLs are kept: the
+    app is served over HTTPS in production, where browsers block plain
+    ``http`` images, and anything else (``javascript:``, relative paths)
+    isn't a photo at all.
+
+    >>> _photo_urls(["https://a/1.jpg", "http://b/2.jpg", 3, "javascript:x"])
+    ('https://a/1.jpg',)
+    >>> _photo_urls(None)
+    ()
+    """
+    if not isinstance(value, list):
+        return ()
+    return tuple(url for url in value if isinstance(url, str) and url.startswith("https://"))
+
+
 @dataclass(frozen=True)
 class Listing:
     """One raw record from one feed, after type-checking and light cleanup."""
@@ -57,6 +76,8 @@ class Listing:
     listed_date: date
     status: str
     description: str
+    # Photo URLs, in the feed's order. Optional: the sample feed has none.
+    photos: tuple[str, ...] = ()
 
     @staticmethod
     def from_dict(raw: dict[str, Any]) -> Listing:
@@ -98,8 +119,9 @@ class Listing:
                 longitude=float(raw["longitude"]),
                 listed_date=date.fromisoformat(str(raw["listedDate"])),
                 status=status,
-                # Description is the one optional field: missing/null -> "".
+                # Description is optional: missing or null becomes "".
                 description=str(raw.get("description") or ""),
+                photos=_photo_urls(raw.get("photos")),
             )
         except KeyError as exc:
             # A required field is missing entirely - name it in the message.
@@ -156,6 +178,7 @@ class MergedListing:
     description: str  # description from the primary record (for display)
     search_text: str  # all source descriptions joined (for keyword matching)
     sources: tuple[SourceRef, ...]  # tuple (not list) so the dataclass stays immutable
+    photos: tuple[str, ...] = ()  # from the primary record, or the first record that has any
 
 
 @dataclass(frozen=True)
@@ -223,6 +246,7 @@ class ScoredListing:
             "relevanceScore": self.score,
             "scoreBreakdown": self.breakdown.to_dict(),
             "sources": [s.to_dict() for s in m.sources],
+            "photos": list(m.photos),
         }
 
 

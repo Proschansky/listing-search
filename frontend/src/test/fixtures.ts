@@ -24,6 +24,7 @@ export const listing: ListingResult = {
   description: 'Quiet cul-de-sac.',
   relevanceScore: 0.7312,
   scoreBreakdown: { budget: 1, recency: 0.1, daysOnMarket: 98 },
+  photos: [],
   sources: [
     { source: 'MLS_A', id: 'A5', address: '55 Elm Ct', price: 470000, listedDate: '2026-09-04', status: 'active' },
   ],
@@ -47,6 +48,7 @@ export const listing2: ListingResult = {
   description: 'Corner lot with pool.',
   relevanceScore: 0.4,
   scoreBreakdown: { budget: null, recency: 0.4, daysOnMarket: 143 },
+  photos: [],
   sources: [
     { source: 'MLS_A', id: 'A9', address: '12 Oak Avenue', price: 615000, listedDate: '2026-07-01', status: 'pending' },
     { source: 'MLS_B', id: 'B3', address: '12 Oak Ave', price: 610000, listedDate: '2026-06-28', status: 'pending' },

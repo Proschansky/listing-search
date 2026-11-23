@@ -63,6 +63,10 @@ for port in 8000 5173; do
 done
 
 say "Starting API on http://localhost:8000"
+# Load the bundled sample plus the SimplyRETS live feed, unless you've set
+# LISTING_SOURCES yourself (for example LISTING_SOURCES='["sample"]' to work
+# offline). If SimplyRETS is down, the app still starts on the sample data.
+export LISTING_SOURCES="${LISTING_SOURCES:-[\"sample\",\"simplyrets\"]}"
 (cd backend && exec .venv/bin/uvicorn app.main:app --reload --port 8000) &
 API_PID=$!
 

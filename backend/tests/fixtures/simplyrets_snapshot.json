@@ -1,0 +1,107 @@
+{
+  "fetchedAt": "2026-09-01T12:00:00+00:00",
+  "records": [
+    {
+      "mlsId": 9001,
+      "listingId": "9001",
+      "listPrice": 485000,
+      "listDate": "2026-08-20T15:30:00.000000Z",
+      "remarks": "Two-story home near the bayou trail, covered patio.",
+      "photos": [
+        "https://photos.example.com/simplyrets/9001/1.jpg",
+        "https://photos.example.com/simplyrets/9001/2.jpg",
+        "https://photos.example.com/simplyrets/9001/3.jpg"
+      ],
+      "mls": {
+        "status": "Active",
+        "daysOnMarket": 30
+      },
+      "address": {
+        "full": "1200 Bayou Bend Dr",
+        "city": "Houston",
+        "state": "Texas",
+        "postalCode": "77002",
+        "country": "United States"
+      },
+      "property": {
+        "bedrooms": 3,
+        "bathsFull": 2,
+        "bathsHalf": 1,
+        "bathsThreeQuarter": null,
+        "area": 1850,
+        "type": "RES"
+      },
+      "geo": {
+        "lat": 29.7604,
+        "lng": -95.3698
+      }
+    },
+    {
+      "mlsId": 9002,
+      "listingId": "9002",
+      "listPrice": 352000,
+      "listDate": "2026-07-02T15:30:00.000000Z",
+      "remarks": "Corner condo in the Heights with a garage.",
+      "photos": [
+        "https://photos.example.com/simplyrets/9002/1.jpg",
+        "https://photos.example.com/simplyrets/9002/2.jpg"
+      ],
+      "mls": {
+        "status": "Pending",
+        "daysOnMarket": 30
+      },
+      "address": {
+        "full": "77 Heights Blvd #4",
+        "city": "Houston",
+        "state": "Texas",
+        "postalCode": "77002",
+        "country": "United States"
+      },
+      "property": {
+        "bedrooms": 2,
+        "bathsFull": 2,
+        "bathsHalf": 0,
+        "bathsThreeQuarter": null,
+        "area": 1180,
+        "type": "RES"
+      },
+      "geo": {
+        "lat": 29.79,
+        "lng": -95.398
+      }
+    },
+    {
+      "mlsId": 9003,
+      "listingId": "9003",
+      "listPrice": 610000,
+      "listDate": "2026-05-15T15:30:00.000000Z",
+      "remarks": "Sold: large lot backing onto greenbelt.",
+      "photos": [
+        "https://photos.example.com/simplyrets/9003/1.jpg"
+      ],
+      "mls": {
+        "status": "Closed",
+        "daysOnMarket": 30
+      },
+      "address": {
+        "full": "15 Cypress Creek Ct",
+        "city": "Cypress",
+        "state": "Texas",
+        "postalCode": "77002",
+        "country": "United States"
+      },
+      "property": {
+        "bedrooms": 4,
+        "bathsFull": 3,
+        "bathsHalf": 1,
+        "bathsThreeQuarter": null,
+        "area": 2950,
+        "type": "RES"
+      },
+      "geo": {
+        "lat": 29.9691,
+        "lng": -95.6972
+      }
+    }
+  ]
+}
